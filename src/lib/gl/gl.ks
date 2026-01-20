@@ -88,7 +88,59 @@ impl Context as module = (
             .ctx,
             .shader,
         )
-    )
+    );
+    
+    const create_program = (ctx :: Context) -> Option.t[Program] => (
+        (@native "({ctx})=>ctx.createProgram(ctx)")(
+            .ctx,
+        )
+            |> js.check_null
+    );
+    
+    const attach_shader = (
+        ctx :: Context,
+        program :: Program,
+        shader :: Shader
+    ) -> () => (
+        (@native "({ctx,program,shader})=>ctx.attachShader(program,shader)")(
+            .ctx,
+            .program,
+            .shader,
+        )
+    );
+    
+    const link_program = (
+        ctx :: Context,
+        program :: Program,
+    ) -> () => (
+        (@native "({ctx,program})=>ctx.linkProgram(program)")(
+            .ctx,
+            .program,
+        )
+    );
+    
+    const get_program_parameter_bool = (
+        ctx :: Context,
+        program :: Program,
+        pname :: GLenum,
+    ) -> GLboolean => (
+        (@native "({ctx,program,pname})=>ctx.getProgramParameter(program,pname)")(
+            .ctx,
+            .program,
+            .pname,
+        )
+    );
+    
+    const get_program_info_log = (
+        ctx :: Context,
+        program :: Program,
+    ) -> String => (
+        (@native "({ctx,program})=>ctx.getProgramInfoLog(program)")(
+            .ctx,
+            .program,
+        )
+    );
 );
 
 const Shader = @opaque_type;
+const Program = @opaque_type;
