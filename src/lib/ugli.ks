@@ -108,6 +108,21 @@ impl Vec2 as VertexAttribute = (
     ),
 );
 
+impl Vec3 as VertexAttribute = (
+    .size = 3,
+    .@"type" = gl.FLOAT,
+    .type_size = 4,
+    .construct_data = data => (
+        let list = js.List.init();
+        for &(x, y, z) in List.iter(data) do (
+            list |> js.List.push(x);
+            list |> js.List.push(y);
+            list |> js.List.push(z);
+        );
+        (@native "list=>new Float32Array(list)")(list)
+    ),
+);
+
 impl Vec4 as VertexAttribute = (
     .size = 4,
     .@"type" = gl.FLOAT,

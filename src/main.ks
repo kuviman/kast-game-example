@@ -37,35 +37,17 @@ let program = (
     ctx |> ugli.Program.init(vertex_shader, fragment_shader)
 );
 
-const Vertex = newtype (
-    .a_pos :: Vec2,
-    .a_color :: Vec4,
+const teapot_src = std.fs.read_file(
+    std.path.dirname(__FILE__) + "/test.obj"
 );
-
-let mut data :: List.t[Vertex] = List.create();
-List.push_back(
-    &mut data,
-    (
-        .a_pos = (-1, -1),
-        .a_color = (1, 0, 0, 1),
-    )
-);
-List.push_back(
-    &mut data,
-    (
-        .a_pos = (+1, -1),
-        .a_color = (0, 1, 0, 1),
-    )
-);
-List.push_back(
-    &mut data,
-    (
-        .a_pos = (0, +1),
-        .a_color = (0, 0, 1, 1),
-    )
+let faces = obj.parse(teapot_src);
+let mut data = List.create();
+for face in List.iter(&faces) do (
+    &mut data |> List.push_back(face^.a);
+    &mut data |> List.push_back(face^.b);
+    &mut data |> List.push_back(face^.c);
 );
 
 program |> ugli.Program.@"use";
 ugli.bind_field(program, &data, "a_pos", vertex => vertex^.a_pos);
-ugli.bind_field(program, &data, "a_color", vertex => vertex^.a_color);
-ctx |> GL.draw_arrays(gl.TRIANGLES, 0, 3);
+ctx |> GL.draw_arrays(gl.TRIANGLES, 0, List.length(&data));
