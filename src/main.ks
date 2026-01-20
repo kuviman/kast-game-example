@@ -62,4 +62,24 @@ if not link_status then (
     panic("Program link failed: " + log);
 );
 
-dbg.print(.program);
+let buffer = ctx |> GL.create_buffer;
+
+let data = (@native "new Float32Array([-1,-1,1,-1,0,1])");
+
+ctx |> GL.bind_buffer(gl.ARRAY_BUFFER, buffer);
+ctx |> GL.buffer_data(gl.ARRAY_BUFFER, data, gl.STATIC_DRAW);
+
+ctx
+    |> GL.vertex_attrib_pointer(
+        0,
+        2,
+        gl.FLOAT,
+        false,
+        2 * 4,
+        0
+    );
+
+ctx |> GL.enable_vertex_attrib_array(0);
+
+ctx |> GL.use_program(program);
+ctx |> GL.draw_arrays(gl.TRIANGLES, 0, 3);
