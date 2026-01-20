@@ -13,8 +13,7 @@
         overlays = [ ];
         pkgs = import inputs.nixpkgs { inherit system overlays; };
         kast = inputs.kast.packages.${system}.default;
-      in
-      with pkgs; {
+      in with pkgs; {
         devShells.default = mkShell {
           packages = [
             (pkgs.writeShellScriptBin "kast" ''
@@ -26,6 +25,7 @@
             nodejs
             just
             caddy
+            inotify-tools
           ];
         };
       });
