@@ -17,3 +17,16 @@ const check_null = [T] (a :: Any) -> Option.t[T] => (
         :Some(a |> unsafe_cast)
     )
 );
+
+const List = @opaque_type;
+
+impl List as module = (
+    module:
+    
+    const init = () -> List => (
+        @native "[]"
+    );
+    const push = [T] (list :: List, x :: T) -> () => (
+        (@native "({list,x})=>list.push(x)")(.list, .x)
+    );
+);

@@ -1,3 +1,4 @@
+use std.collections.Map;
 include "lib/_lib.ks";
 
 let document = web.document();
@@ -22,64 +23,49 @@ const FRAGMENT_SHADER_SOURCE = std.fs.read_file(
     std.path.dirname(__FILE__) + "/fragment.glsl"
 );
 
-const compile_shader = (shader_type, source) => (
-    let shader = ctx
-        |> GL.create_shader(shader_type)
-        |> Option.unwrap;
-    ctx |> GL.shader_source(shader, source);
-    ctx |> GL.compile_shader(shader);
-    let compile_status = ctx
-        |> GL.get_shader_parameter_bool(
-            shader, gl.COMPILE_STATUS
+let program = (
+    let vertex_shader = ctx
+        |> ugli.compile_shader(
+            gl.VERTEX_SHADER,
+            VERTEX_SHADER_SOURCE
         );
-    if not compile_status then (
-        let log = ctx
-            |> GL.get_shader_info_log(shader);
-        panic("Shader compilation failed: " + log);
-    );
-    shader
+    let fragment_shader = ctx
+        |> ugli.compile_shader(
+            gl.FRAGMENT_SHADER,
+            FRAGMENT_SHADER_SOURCE
+        );
+    ctx |> ugli.Program.init(vertex_shader, fragment_shader)
 );
 
-let vertex_shader = compile_shader(
-    gl.VERTEX_SHADER,
-    VERTEX_SHADER_SOURCE,
-);
-let fragment_shader = compile_shader(
-    gl.FRAGMENT_SHADER,
-    FRAGMENT_SHADER_SOURCE,
+const Vertex = newtype (
+    .a_pos :: Vec2,
+    .a_color :: Vec4,
 );
 
-let program = ctx
-    |> GL.create_program
-    |> Option.unwrap;
-ctx |> GL.attach_shader(program, vertex_shader);
-ctx |> GL.attach_shader(program, fragment_shader);
-ctx |> GL.link_program(program);
-let link_status = ctx |> GL.get_program_parameter_bool(program, gl.LINK_STATUS);
-if not link_status then (
-    let log = ctx
-        |> GL.get_program_info_log(program);
-    panic("Program link failed: " + log);
+let mut data :: List.t[Vertex] = List.create();
+List.push_back(
+    &mut data,
+    (
+        .a_pos = (-1, -1),
+        .a_color = (1, 0, 0, 1),
+    )
+);
+List.push_back(
+    &mut data,
+    (
+        .a_pos = (+1, -1),
+        .a_color = (0, 1, 0, 1),
+    )
+);
+List.push_back(
+    &mut data,
+    (
+        .a_pos = (0, +1),
+        .a_color = (0, 0, 1, 1),
+    )
 );
 
-let buffer = ctx |> GL.create_buffer;
-
-let data = (@native "new Float32Array([-1,-1,1,-1,0,1])");
-
-ctx |> GL.bind_buffer(gl.ARRAY_BUFFER, buffer);
-ctx |> GL.buffer_data(gl.ARRAY_BUFFER, data, gl.STATIC_DRAW);
-
-ctx
-    |> GL.vertex_attrib_pointer(
-        0,
-        2,
-        gl.FLOAT,
-        false,
-        2 * 4,
-        0
-    );
-
-ctx |> GL.enable_vertex_attrib_array(0);
-
-ctx |> GL.use_program(program);
+program |> ugli.Program.@"use";
+ugli.bind_field(program, &data, "a_pos", vertex => vertex^.a_pos);
+ugli.bind_field(program, &data, "a_color", vertex => vertex^.a_color);
 ctx |> GL.draw_arrays(gl.TRIANGLES, 0, 3);

@@ -131,6 +131,18 @@ impl Context as module = (
         )
     );
     
+    const get_program_parameter_int = (
+        ctx :: Context,
+        program :: Program,
+        pname :: GLenum,
+    ) -> GLint => (
+        (@native "({ctx,program,pname})=>ctx.getProgramParameter(program,pname)")(
+            .ctx,
+            .program,
+            .pname,
+        )
+    );
+    
     const get_program_info_log = (
         ctx :: Context,
         program :: Program,
@@ -206,11 +218,11 @@ impl Context as module = (
         stride :: GLsizei,
         offset :: GLintptr,
     ) -> () => (
-        (@native "({ctx,index,size,ty,normalized,stride,offset})=>ctx.vertexAttribPointer(index,size,ty,normalized,stride,offset)")(
+        (@native "({ctx,index,size,type,normalized,stride,offset})=>ctx.vertexAttribPointer(index,size,type,normalized,stride,offset)")(
             .ctx,
             .index,
             .size,
-            .ty = @"type",
+            .@"type",
             .normalized,
             .stride,
             .offset,
@@ -236,8 +248,25 @@ impl Context as module = (
             .index,
         )
     );
+    
+    const get_active_attrib = (
+        ctx :: Context,
+        program :: Program,
+        index :: GLuint,
+    ) -> ActiveInfo => (
+        (@native "({ctx,program,index})=>ctx.getActiveAttrib(program,index)")(
+            .ctx,
+            .program,
+            .index,
+        )
+    )
 );
 
 const Shader = @opaque_type;
 const Program = @opaque_type;
 const Buffer = @opaque_type;
+const ActiveInfo = newtype (
+    .name :: String,
+    .size :: GLsizei,
+    .@"type" :: GLenum,
+);
