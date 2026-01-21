@@ -1,0 +1,125 @@
+module:
+
+const Vertex = newtype (
+    .a_pos :: Vec2,
+    .a_uv :: Vec2,
+);
+
+impl Vertex as ugli.Vertex = (
+    .init_fields = (data, f) => (
+        f("a_pos", ugli.VertexBuffer.init_field(data, v => v^.a_pos));
+        f("a_uv", ugli.VertexBuffer.init_field(data, v => v^.a_uv));
+    ),
+);
+
+const ContextT = newtype (
+    .canvas_size :: (
+        .width :: Float32,
+        .height :: Float32,
+    ),
+    .quad :: (
+        .program :: ugli.Program,
+        .buffer :: ugli.VertexBuffer.t[Vertex],
+    ),
+);
+const Context = @context ContextT;
+
+const init = () -> (.geng :: ContextT, .gl :: gl.ContextT) => (
+    let document = web.document();
+    let canvas :: web.HtmlCanvasElement = document
+        |> web.HtmlDocumentElement.get_element_by_id("canvas")
+        |> js.unsafe_cast;
+    let webgl :: web.WebGLRenderingContext = canvas
+        |> web.HtmlCanvasElement.get_context("webgl")
+        |> js.from_any;
+    with gl.Context = webgl;
+    let quad = (
+        .program = (
+            let vertex_shader = ugli.compile_shader(
+                gl.VERTEX_SHADER,
+                fetch_string("vertex.glsl")
+            );
+            let fragment_shader = ugli.compile_shader(
+                gl.FRAGMENT_SHADER,
+                fetch_string("fragment.glsl")
+            );
+            ugli.Program.init(vertex_shader, fragment_shader)
+        ),
+        .buffer = (
+            let mut data :: List.t[Vertex] = List.create();
+            List.push_back(
+                &mut data,
+                (
+                    .a_pos = (-1, -1),
+                    .a_uv = (0, 0),
+                ),
+            );
+            List.push_back(
+                &mut data,
+                (
+                    .a_pos = (+1, -1),
+                    .a_uv = (1, 0),
+                ),
+            );
+            List.push_back(
+                &mut data,
+                (
+                    .a_pos = (+1, +1),
+                    .a_uv = (1, 1),
+                ),
+            );
+            List.push_back(
+                &mut data,
+                (
+                    .a_pos = (-1, +1),
+                    .a_uv = (0, 1),
+                ),
+            );
+            ugli.VertexBuffer.init(&data)
+        ),
+    );
+    let mut geng = (
+        .canvas_size = (.width = 1, .height = 1),
+        .quad,
+    );
+    (@native "Runtime.observe_canvas_size")(
+        .canvas,
+        .webgl,
+        .handler = size => (
+            geng.canvas_size = size;
+        ),
+    );
+    (
+        .geng,
+        .gl = webgl,
+    )
+);
+
+const canvas_size = () => (
+    (@current Context).canvas_size
+);
+
+const draw_quad = (
+    .pos :: Vec2,
+    .radius :: Float32,
+    .projection_matrix :: Mat3,
+    .texture :: ugli.Texture,
+) => (
+    let ctx = (@current Context);
+    let program = ctx.quad.program;
+    program |> ugli.Program.@"use";
+    
+    let mut draw_state = ugli.DrawState.init();
+    let draw_state = &mut draw_state;
+    
+    program |> ugli.set_uniform("u_pos", pos, draw_state);
+    program |> ugli.set_uniform("u_radius", radius, draw_state);
+    program |> ugli.set_uniform("u_projection_matrix", projection_matrix, draw_state);
+    program |> ugli.set_uniform("u_texture", texture, draw_state);
+    program |> ugli.set_vertex_data_source(ctx.quad.buffer);
+    gl.draw_arrays(gl.TRIANGLE_FAN, 0, 4);
+);
+
+const await_next_frame = () -> () => (
+    await_animation_frame();
+);

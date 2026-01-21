@@ -1,103 +1,16 @@
 use std.collections.Map;
 include "lib/_lib.ks";
 
+let (.geng = geng_ctx, .gl = gl_ctx) = geng.init();
+with geng.Context = geng_ctx;
+with gl.Context = gl_ctx;
+
 const BACKGROUND_COLOR = (0.8, 0.8, 1.0, 1.0);
 const ENEMY_SPAWN_TIME = 1;
 const ENEMY_SPEED = 0.3;
 const PLAYER_SPEED = 3;
 const PLAYER_RADIUS = 0.3;
 const ENEMY_RADIUS = 0.3;
-
-const time = (
-    module:
-    
-    const now = () -> Float64 => (
-        (@native "performance.now()") / 1000
-    );
-);
-
-const load_image = (url :: String) -> web.HtmlImageElement => (
-    (@native "Runtime.load_image")(url)
-);
-
-const await_animation_frame = () -> () => (
-    (@native "Runtime.await_animation_frame")()
-);
-
-let document = web.document();
-let canvas :: web.HtmlCanvasElement = document
-    |> web.HtmlDocumentElement.get_element_by_id("canvas")
-    |> js.unsafe_cast;
-let webgl :: web.WebGLRenderingContext = canvas
-    |> web.HtmlCanvasElement.get_context("webgl")
-    |> js.from_any;
-let mut canvas_size = (.width = 1, .height = 1);
-(@native "Runtime.observe_canvas_size")(
-    .canvas,
-    .webgl,
-    .handler = size => (
-        canvas_size = size;
-    ),
-);
-
-with gl.Context = webgl;
-
-let program = (
-    let vertex_shader = ugli.compile_shader(
-        gl.VERTEX_SHADER,
-        fetch_string("vertex.glsl")
-    );
-    let fragment_shader = ugli.compile_shader(
-        gl.FRAGMENT_SHADER,
-        fetch_string("fragment.glsl")
-    );
-    ugli.Program.init(vertex_shader, fragment_shader)
-);
-
-const Vertex = newtype (
-    .a_pos :: Vec2,
-    .a_uv :: Vec2,
-);
-
-impl Vertex as ugli.Vertex = (
-    .init_fields = (data, f) => (
-        f("a_pos", ugli.VertexBuffer.init_field(data, v => v^.a_pos));
-        f("a_uv", ugli.VertexBuffer.init_field(data, v => v^.a_uv));
-    ),
-);
-
-let quad :: ugli.VertexBuffer.t[Vertex] = (
-    let mut data :: List.t[Vertex] = List.create();
-    List.push_back(
-        &mut data,
-        (
-            .a_pos = (-1, -1),
-            .a_uv = (0, 0),
-        ),
-    );
-    List.push_back(
-        &mut data,
-        (
-            .a_pos = (+1, -1),
-            .a_uv = (1, 0),
-        ),
-    );
-    List.push_back(
-        &mut data,
-        (
-            .a_pos = (+1, +1),
-            .a_uv = (1, 1),
-        ),
-    );
-    List.push_back(
-        &mut data,
-        (
-            .a_pos = (-1, +1),
-            .a_uv = (0, 1),
-        ),
-    );
-    ugli.VertexBuffer.init(&data)
-);
 
 let textures = (
     .player = ugli.Texture.init(load_image("player.png"), :Nearest),
@@ -127,26 +40,13 @@ impl Unit as module = (
     );
     
     const draw = (unit :: &Unit) => (
-        program |> ugli.Program.@"use";
-        
-        let mut draw_state = ugli.DrawState.init();
-        let draw_state = &mut draw_state;
-        
-        program |> ugli.set_uniform("u_pos", unit^.pos, draw_state);
-        program |> ugli.set_uniform("u_radius", unit^.radius, draw_state);
-        program |> ugli.set_uniform("u_projection_matrix", projection_matrix, draw_state);
-        program |> ugli.set_uniform("u_texture", unit^.texture, draw_state);
-        program |> ugli.set_vertex_data_source(quad);
-        gl.draw_arrays(gl.TRIANGLE_FAN, 0, 4);
+        geng.draw_quad(
+            .pos = unit^.pos,
+            .radius = unit^.radius,
+            .projection_matrix,
+            .texture = unit^.texture,
+        );
     );
-);
-
-const abs = (x :: Float32) -> Float32 => (
-    if x < 0 then (
-        -x
-    ) else (
-        x
-    )
 );
 
 let check_collision = (a :: &Unit, b :: &Unit) -> Bool => (
@@ -225,7 +125,7 @@ loop (
     
     ugli.clear(BACKGROUND_COLOR);
     
-    let aspect = canvas_size.width / canvas_size.height;
+    let aspect = geng_ctx.canvas_size.width / geng_ctx.canvas_size.height;
     projection_matrix = (
         (2 / aspect / fov, 0, 0),
         (0, 2 / fov, 0),
@@ -239,5 +139,5 @@ loop (
         player |> Unit.draw;
     );
     
-    await_animation_frame();
+    geng.await_next_frame();
 );

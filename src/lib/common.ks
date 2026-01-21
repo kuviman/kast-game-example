@@ -1,25 +1,27 @@
-const Float32 = Float64;
+const fetch_string = (path :: String) -> String => (
+    (@native "Runtime.fetch_string")(path)
+);
 
-const Vec2 = newtype (Float32, Float32);
-
-impl Vec2 as module = (
+const time = (
     module:
-    const add = ((ax, ay) :: Vec2, (bx, by) :: Vec2) -> Vec2 => (
-        ax + bx, ay + by
-    );
-    const sub = ((ax, ay) :: Vec2, (bx, by) :: Vec2) -> Vec2 => (
-        ax - bx, ay - by
-    );
-    const mul = ((x, y) :: Vec2, k :: Float32) -> Vec2 => (
-        x * k, y * k
+    
+    const now = () -> Float64 => (
+        (@native "performance.now()") / 1000
     );
 );
 
-const Vec3 = newtype (Float32, Float32, Float32);
-const Vec4 = newtype (Float32, Float32, Float32, Float32);
+const load_image = (url :: String) -> web.HtmlImageElement => (
+    (@native "Runtime.load_image")(url)
+);
 
-const Mat3 = newtype (Vec3, Vec3, Vec3);
+const await_animation_frame = () -> () => (
+    (@native "Runtime.await_animation_frame")()
+);
 
-const fetch_string = (path :: String) -> String => (
-    (@native "Runtime.fetch_string")(path)
+const abs = (x :: Float32) -> Float32 => (
+    if x < 0 then (
+        -x
+    ) else (
+        x
+    )
 );
