@@ -208,6 +208,19 @@ const Uniform = [Self] newtype (
     .set :: (GL, gl.WebGLUniformLocation, Self, &mut DrawState) -> (),
 );
 
+impl Vec2 as Uniform = (
+    .set = (ctx, location, value, state) => (
+        let list = js.List.init();
+        let (x, y) = value;
+        (@native "({ctx,location,x,y})=>ctx.uniform2f(location,x,y)")(
+            .ctx,
+            .location,
+            .x,
+            .y,
+        );
+    ),
+);
+
 impl Mat3 as Uniform = (
     .set = (ctx, location, value, state) => (
         let list = js.List.init();
@@ -221,7 +234,6 @@ impl Mat3 as Uniform = (
         add(b);
         add(c);
         let data = (@native "list=>new Float32Array(list)")(list);
-        dbg.print(.location, .value, .data);
         (@native "({ctx,location,data})=>ctx.uniformMatrix3fv(location,false,data)")(
             .ctx,
             .data,

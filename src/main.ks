@@ -94,9 +94,24 @@ const get_canvas_size = (canvas) -> (Float32, Float32) => (
 let image = load_image("image.png");
 let texture = ugli.Texture.init(ctx, image);
 
-let fov = 4;
+let fov = 10;
+
+let mut pos :: Vec2 = (0, 0);
+let mut vel :: Vec2 = (1, 0);
 
 loop (
+    let dt = 0.01;
+    pos.0 += vel.0 * dt;
+    pos.1 += vel.1 * dt;
+    if pos.0 > 1 then (
+        pos.0 = 1;
+        vel.0 = -vel.0;
+    );
+    if pos.0 < -1 then (
+        pos.0 = -1;
+        vel.0 = -vel.0;
+    );
+    
     ctx |> GL.clear_color(0.8, 0.8, 1.0, 1.0);
     ctx |> GL.clear(gl.COLOR_BUFFER_BIT);
     
@@ -113,6 +128,7 @@ loop (
     let mut draw_state = ugli.DrawState.init();
     let draw_state = &mut draw_state;
     
+    program |> ugli.set_uniform("u_pos", pos, draw_state);
     program |> ugli.set_uniform("u_projection_matrix", projection_matrix, draw_state);
     program |> ugli.set_uniform("u_texture", texture, draw_state);
     # TODO only upload data to GPU once
