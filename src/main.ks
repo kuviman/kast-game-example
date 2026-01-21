@@ -1,6 +1,12 @@
 use std.collections.Map;
 include "lib/_lib.ks";
 
+const ENEMY_SPAWN_TIME = 1;
+const ENEMY_SPEED = 0.3;
+const PLAYER_SPEED = 3;
+const PLAYER_SIZE = 0.3;
+const ENEMY_SIZE = 0.3;
+
 const time = (
     module:
     
@@ -64,6 +70,7 @@ let program = (
 
 const Vertex = newtype (
     .a_pos :: Vec2,
+    .a_uv :: Vec2,
 );
 
 let quad = (
@@ -71,25 +78,29 @@ let quad = (
     List.push_back(
         &mut data,
         (
-            .a_pos = (0, 0),
+            .a_pos = (-1, -1),
+            .a_uv = (0, 0),
         ),
     );
     List.push_back(
         &mut data,
         (
-            .a_pos = (1, 0),
+            .a_pos = (+1, -1),
+            .a_uv = (1, 0),
         ),
     );
     List.push_back(
         &mut data,
         (
-            .a_pos = (1, 1),
+            .a_pos = (+1, +1),
+            .a_uv = (1, 1),
         ),
     );
     List.push_back(
         &mut data,
         (
-            .a_pos = (0, 1),
+            .a_pos = (-1, +1),
+            .a_uv = (0, 1),
         ),
     );
     data
@@ -99,15 +110,87 @@ const get_canvas_size = (canvas) -> (Float32, Float32) => (
     (@native "Runtime.get_canvas_size")(canvas)
 );
 
-let image = load_image("image.png");
-let texture = ugli.Texture.init(ctx, image, :Nearest);
+let textures = (
+    .player = ugli.Texture.init(ctx, load_image("player.png"), :Nearest),
+    .enemy = ugli.Texture.init(ctx, load_image("enemy.png"), :Nearest)
+);
+
+let mut projection_matrix :: Mat3 = (
+    (1, 0, 0),
+    (0, 1, 0),
+    (0, 0, 1),
+);
 
 let fov = 10;
 
-let mut pos :: Vec2 = (0, 0);
-let mut vel :: Vec2 = (1, 0);
+const Unit = newtype (
+    .pos :: Vec2,
+    .size :: Float32,
+    .vel :: Vec2,
+    .texture :: ugli.Texture,
+);
 
+impl Unit as module = (
+    module:
+    
+    const update = (unit :: &mut Unit, dt :: Float64) => (
+        unit^.pos = Vec2.add(unit^.pos, Vec2.mul(unit^.vel, dt));
+    );
+    
+    const draw = (unit :: &Unit) => (
+        program |> ugli.Program.@"use";
+        
+        let mut draw_state = ugli.DrawState.init();
+        let draw_state = &mut draw_state;
+        
+        program |> ugli.set_uniform("u_pos", unit^.pos, draw_state);
+        program |> ugli.set_uniform("u_size", unit^.size, draw_state);
+        program |> ugli.set_uniform("u_projection_matrix", projection_matrix, draw_state);
+        program |> ugli.set_uniform("u_texture", unit^.texture, draw_state);
+        # TODO only upload data to GPU once
+        ugli.bind_field(program, &quad, "a_pos", vertex => vertex^.a_pos);
+        ugli.bind_field(program, &quad, "a_uv", vertex => vertex^.a_uv);
+        ctx |> GL.draw_arrays(gl.TRIANGLE_FAN, 0, List.length(&quad));
+    );
+);
+
+const abs = (x :: Float32) -> Float32 => (
+    if x < 0 then (
+        -x
+    ) else (
+        x
+    )
+);
+
+let check_collision = (a :: &Unit, b :: &Unit) -> Bool => (
+    abs(a^.pos.0 - b^.pos.0) < a^.size + b^.size
+    and abs(a^.pos.1 - b^.pos.1) < a^.size + b^.size
+);
+
+let mut player :: Option.t[Unit] = :Some(.pos = (0, 0),
+.size = PLAYER_SIZE,
+.vel = (0, 0),
+.texture = textures.player,);
+
+use std.collections.Treap;
+
+let mut enemies = Treap.create();
+let spawn_enemy = () => (
+    let edge = fov / 2;
+    let start_pos = (std.random.gen_range(.min = -edge, .max = +edge), -edge);
+    let end_pos = (std.random.gen_range(.min = -edge, .max = +edge), +edge);
+    let enemy = (
+        .pos = start_pos,
+        .size = ENEMY_SIZE,
+        .vel = Vec2.mul(Vec2.sub(end_pos, start_pos), ENEMY_SPEED),
+        .texture = textures.enemy,
+    );
+    enemies = Treap.join(enemies, Treap.singleton(enemy));
+);
+
+let start_time = time.now();
 let mut t = time.now();
+let mut next_enemy = ENEMY_SPAWN_TIME;
 
 loop (
     let dt = (
@@ -116,43 +199,60 @@ loop (
         t = new_t;
         dt
     );
-    vel = (0, 0);
-    if input.is_key_pressed(:ArrowLeft) then (
-        vel.0 -= 1;
+    next_enemy -= dt;
+    while next_enemy < 0 do (
+        spawn_enemy();
+        next_enemy += ENEMY_SPAWN_TIME;
     );
-    if input.is_key_pressed(:ArrowRight) then (
-        vel.0 += 1;
+    while Treap.length(&enemies) != 0 do (
+        let first = Treap.at(&enemies, 0);
+        if first^.pos.1 > fov then (
+            _, enemies = Treap.split_at(enemies, 1);
+        ) else break;
     );
-    if input.is_key_pressed(:ArrowUp) then (
-        vel.1 += 1;
+    if player is :Some(ref mut player) then (
+        player^.vel = (0, 0);
+        if input.is_key_pressed(:ArrowLeft) then (
+            player^.vel.0 -= 1;
+        );
+        if input.is_key_pressed(:ArrowRight) then (
+            player^.vel.0 += 1;
+        );
+        if input.is_key_pressed(:ArrowUp) then (
+            player^.vel.1 += 1;
+        );
+        if input.is_key_pressed(:ArrowDown) then (
+            player^.vel.1 -= 1;
+        );
+        player^.vel = Vec2.mul(player^.vel, PLAYER_SPEED);
+        player |> Unit.update(dt);
     );
-    if input.is_key_pressed(:ArrowDown) then (
-        vel.1 -= 1;
+    for enemy in Treap.iter_mut(&mut enemies) do (
+        enemy |> Unit.update(dt);
+        if player is :Some(ref player_unit) then (
+            if check_collision(&enemy^, player_unit) then (
+                player = :None;
+            );
+        );
     );
-    pos.0 += vel.0 * dt;
-    pos.1 += vel.1 * dt;
     
     ctx |> GL.clear_color(0.8, 0.8, 1.0, 1.0);
     ctx |> GL.clear(gl.COLOR_BUFFER_BIT);
     
     let (width, height) = canvas |> get_canvas_size;
     let aspect = width / height;
-    let projection_matrix :: Mat3 = (
+    projection_matrix = (
         (2 / aspect / fov, 0, 0),
         (0, 2 / fov, 0),
         (0, 0, 1),
     );
     
-    program |> ugli.Program.@"use";
+    for enemy in Treap.iter(&enemies) do (
+        enemy |> Unit.draw;
+    );
+    if player is :Some(ref player) then (
+        player |> Unit.draw;
+    );
     
-    let mut draw_state = ugli.DrawState.init();
-    let draw_state = &mut draw_state;
-    
-    program |> ugli.set_uniform("u_pos", pos, draw_state);
-    program |> ugli.set_uniform("u_projection_matrix", projection_matrix, draw_state);
-    program |> ugli.set_uniform("u_texture", texture, draw_state);
-    # TODO only upload data to GPU once
-    ugli.bind_field(program, &quad, "a_pos", vertex => vertex^.a_pos);
-    ctx |> GL.draw_arrays(gl.TRIANGLE_FAN, 0, List.length(&quad));
     await_animation_frame();
 );

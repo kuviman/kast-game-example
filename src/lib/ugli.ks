@@ -228,6 +228,17 @@ const Uniform = [Self] newtype (
     .set :: (GL, gl.WebGLUniformLocation, Self, &mut DrawState) -> (),
 );
 
+impl Float32 as Uniform = (
+    .set = (ctx, location, x, state) => (
+        let list = js.List.init();
+        (@native "({ctx,location,x})=>ctx.uniform1f(location,x)")(
+            .ctx,
+            .location,
+            .x,
+        );
+    ),
+);
+
 impl Vec2 as Uniform = (
     .set = (ctx, location, value, state) => (
         let list = js.List.init();
@@ -263,11 +274,12 @@ impl Mat3 as Uniform = (
 );
 
 impl Texture as Uniform = (
-    .set = (ctx, location, value, state) => (
+    .set = (ctx, location, texture, state) => (
         (@native "({ctx,i})=>ctx.activeTexture(i)")(
             .ctx,
             .i = gl.TEXTURE0 + state^.active_texture_index,
         );
+        ctx |> GL.bind_texture(gl.TEXTURE_2D, texture.handle);
         (@native "({ctx,location,i})=>ctx.uniform1i(location,i)")(
             .ctx,
             .location,
