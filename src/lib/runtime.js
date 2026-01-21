@@ -46,4 +46,9 @@ Runtime.is_key_pressed = (key) => {
   return pressed;
 };
 
+Runtime.fetch_string = async (path) => {
+  const response = await fetch(path);
+  return await response.text();
+};
+
 window.Runtime = Runtime;

@@ -47,23 +47,16 @@ let ctx :: GL = (
         |> GL.init
 );
 
-const VERTEX_SHADER_SOURCE = std.fs.read_file(
-    std.path.dirname(__FILE__) + "/vertex.glsl"
-);
-const FRAGMENT_SHADER_SOURCE = std.fs.read_file(
-    std.path.dirname(__FILE__) + "/fragment.glsl"
-);
-
 let program = (
     let vertex_shader = ctx
         |> ugli.compile_shader(
             gl.VERTEX_SHADER,
-            VERTEX_SHADER_SOURCE
+            fetch_string("vertex.glsl")
         );
     let fragment_shader = ctx
         |> ugli.compile_shader(
             gl.FRAGMENT_SHADER,
-            FRAGMENT_SHADER_SOURCE
+            fetch_string("fragment.glsl")
         );
     ctx |> ugli.Program.init(vertex_shader, fragment_shader)
 );

@@ -19,3 +19,7 @@ const Vec3 = newtype (Float32, Float32, Float32);
 const Vec4 = newtype (Float32, Float32, Float32, Float32);
 
 const Mat3 = newtype (Vec3, Vec3, Vec3);
+
+const fetch_string = (path :: String) -> String => (
+    (@native "Runtime.fetch_string")(path)
+);
