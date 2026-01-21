@@ -160,17 +160,23 @@ impl Texture as module = (
     );
 );
 
-const VertexAttribute = [Self] newtype (
+const VertexAttributeType = newtype (
     .size :: gl.GLint,
     .@"type" :: gl.GLenum,
     .type_size :: Int32,
+);
+
+const VertexAttribute = [Self] newtype (
+    .@"type" :: VertexAttributeType,
     .construct_data :: &List.t[Self] -> js.Any,
 );
 
 impl Vec2 as VertexAttribute = (
-    .size = 2,
-    .@"type" = gl.FLOAT,
-    .type_size = 4,
+    .@"type" = (
+        .size = 2,
+        .@"type" = gl.FLOAT,
+        .type_size = 4,
+    ),
     .construct_data = data => (
         let list = js.List.init();
         for &(x, y) in List.iter(data) do (
@@ -182,9 +188,11 @@ impl Vec2 as VertexAttribute = (
 );
 
 impl Vec3 as VertexAttribute = (
-    .size = 3,
-    .@"type" = gl.FLOAT,
-    .type_size = 4,
+    .@"type" = (
+        .size = 3,
+        .@"type" = gl.FLOAT,
+        .type_size = 4,
+    ),
     .construct_data = data => (
         let list = js.List.init();
         for &(x, y, z) in List.iter(data) do (
@@ -197,9 +205,11 @@ impl Vec3 as VertexAttribute = (
 );
 
 impl Vec4 as VertexAttribute = (
-    .size = 4,
-    .@"type" = gl.FLOAT,
-    .type_size = 4,
+    .@"type" = (
+        .size = 4,
+        .@"type" = gl.FLOAT,
+        .type_size = 4,
+    ),
     .construct_data = data => (
         let list = js.List.init();
         for &(x, y, z, w) in List.iter(data) do (
@@ -303,42 +313,84 @@ const set_uniform = [T] (
     (T as Uniform).set(ctx, uniform_info^.location, value, state);
 );
 
-const bind_field = [V, T] (
-    program :: Program,
-    data :: &List.t[V],
-    name :: String,
-    get :: &V -> T,
-) => with_return (
-    let ctx = program.ctx;
-    let attribute_info = match &program.attributes |> Map.get(name) with (
-        | :Some(info) => info
-        | :None => return
+const Vertex = [Self] newtype (
+    .init_fields :: (GL, &List.t[Self], (String, VertexBuffer.Field) -> ()) -> (),
+);
+
+const VertexBuffer = (
+    module:
+    
+    const Field = newtype (
+        .buffer :: gl.Buffer,
+        .stride :: Int32,
+        .offset :: Int32,
+        .@"type" :: VertexAttributeType,
     );
     
-    let mut field_data = List.create();
-    for vertex in List.iter(data) do (
-        let field = get(vertex);
-        &mut field_data |> List.push_back(field);
+    const t = [V] newtype (
+        .fields :: Map.t[String, Field],
     );
-    let field_data = (T as VertexAttribute).construct_data(&field_data);
     
-    let buffer = ctx |> GL.create_buffer;
-    ctx |> GL.bind_buffer(gl.ARRAY_BUFFER, buffer);
-    ctx |> GL.buffer_data(gl.ARRAY_BUFFER, field_data, gl.STATIC_DRAW);
+    const init = [V] (ctx :: GL, data :: &List.t[V]) -> t[V] => (
+        let mut fields = Map.create();
+        (V as Vertex).init_fields(
+            ctx,
+            data,
+            (name, field) => (
+                Map.add(&mut fields, name, field);
+            )
+        );
+        (.fields)
+    );
     
-    let offset = 0;
-    let stride = (
-        (T as VertexAttribute).size
-        * (T as VertexAttribute).type_size
+    const init_field = [V, T] (
+        ctx :: GL,
+        data :: &List.t[V],
+        get :: &V -> T,
+    ) -> Field => (
+        let mut field_data = List.create();
+        for vertex in List.iter(data) do (
+            let field = get(vertex);
+            &mut field_data |> List.push_back(field);
+        );
+        let field_data = (T as VertexAttribute).construct_data(&field_data);
+        
+        let buffer = ctx |> GL.create_buffer;
+        ctx |> GL.bind_buffer(gl.ARRAY_BUFFER, buffer);
+        ctx |> GL.buffer_data(gl.ARRAY_BUFFER, field_data, gl.STATIC_DRAW);
+        
+        let offset = 0;
+        let @"type" = (T as VertexAttribute).@"type";
+        let stride = @"type".size * @"type".type_size;
+        (
+            .buffer,
+            .stride,
+            .offset,
+            .@"type",
+        )
     );
-    GL.vertex_attrib_pointer(
-        ctx,
-        attribute_info^.index,
-        (T as VertexAttribute).size,
-        (T as VertexAttribute).@"type",
-        false,
-        stride,
-        offset,
+    
+    const @"use" = [V] (
+        buffer :: t[V],
+        program :: Program,
+    ) -> () => (
+        let ctx = program.ctx;
+        for &(.key = name, .value = field) in &buffer.fields |> Map.iter do (
+            let attribute_info = match &program.attributes |> Map.get(name) with (
+                | :Some(info) => info
+                | :None => continue
+            );
+            ctx |> GL.bind_buffer(gl.ARRAY_BUFFER, field.buffer);
+            GL.vertex_attrib_pointer(
+                ctx,
+                attribute_info^.index,
+                field.@"type".size,
+                field.@"type".@"type",
+                false,
+                field.stride,
+                field.offset,
+            );
+            ctx |> GL.enable_vertex_attrib_array(attribute_info^.index);
+        );
     );
-    ctx |> GL.enable_vertex_attrib_array(attribute_info^.index);
 );

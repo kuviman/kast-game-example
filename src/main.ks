@@ -4,8 +4,8 @@ include "lib/_lib.ks";
 const ENEMY_SPAWN_TIME = 1;
 const ENEMY_SPEED = 0.3;
 const PLAYER_SPEED = 3;
-const PLAYER_SIZE = 0.3;
-const ENEMY_SIZE = 0.3;
+const PLAYER_RADIUS = 0.3;
+const ENEMY_RADIUS = 0.3;
 
 const time = (
     module:
@@ -73,7 +73,14 @@ const Vertex = newtype (
     .a_uv :: Vec2,
 );
 
-let quad = (
+impl Vertex as ugli.Vertex = (
+    .init_fields = (ctx, data, f) => (
+        f("a_pos", ugli.VertexBuffer.init_field(ctx, data, v => v^.a_pos));
+        f("a_uv", ugli.VertexBuffer.init_field(ctx, data, v => v^.a_uv));
+    ),
+);
+
+let quad :: ugli.VertexBuffer.t[Vertex] = (
     let mut data :: List.t[Vertex] = List.create();
     List.push_back(
         &mut data,
@@ -103,7 +110,7 @@ let quad = (
             .a_uv = (0, 1),
         ),
     );
-    data
+    ugli.VertexBuffer.init(ctx, &data)
 );
 
 const get_canvas_size = (canvas) -> (Float32, Float32) => (
@@ -125,7 +132,7 @@ let fov = 10;
 
 const Unit = newtype (
     .pos :: Vec2,
-    .size :: Float32,
+    .radius :: Float32,
     .vel :: Vec2,
     .texture :: ugli.Texture,
 );
@@ -144,13 +151,12 @@ impl Unit as module = (
         let draw_state = &mut draw_state;
         
         program |> ugli.set_uniform("u_pos", unit^.pos, draw_state);
-        program |> ugli.set_uniform("u_size", unit^.size, draw_state);
+        program |> ugli.set_uniform("u_radius", unit^.radius, draw_state);
         program |> ugli.set_uniform("u_projection_matrix", projection_matrix, draw_state);
         program |> ugli.set_uniform("u_texture", unit^.texture, draw_state);
         # TODO only upload data to GPU once
-        ugli.bind_field(program, &quad, "a_pos", vertex => vertex^.a_pos);
-        ugli.bind_field(program, &quad, "a_uv", vertex => vertex^.a_uv);
-        ctx |> GL.draw_arrays(gl.TRIANGLE_FAN, 0, List.length(&quad));
+        quad |> ugli.VertexBuffer.@"use"(program);
+        ctx |> GL.draw_arrays(gl.TRIANGLE_FAN, 0, 4);
     );
 );
 
@@ -163,12 +169,12 @@ const abs = (x :: Float32) -> Float32 => (
 );
 
 let check_collision = (a :: &Unit, b :: &Unit) -> Bool => (
-    abs(a^.pos.0 - b^.pos.0) < a^.size + b^.size
-    and abs(a^.pos.1 - b^.pos.1) < a^.size + b^.size
+    abs(a^.pos.0 - b^.pos.0) < a^.radius + b^.radius
+    and abs(a^.pos.1 - b^.pos.1) < a^.radius + b^.radius
 );
 
 let mut player :: Option.t[Unit] = :Some(.pos = (0, 0),
-.size = PLAYER_SIZE,
+.radius = PLAYER_RADIUS,
 .vel = (0, 0),
 .texture = textures.player,);
 
@@ -181,7 +187,7 @@ let spawn_enemy = () => (
     let end_pos = (std.random.gen_range(.min = -edge, .max = +edge), +edge);
     let enemy = (
         .pos = start_pos,
-        .size = ENEMY_SIZE,
+        .radius = ENEMY_RADIUS,
         .vel = Vec2.mul(Vec2.sub(end_pos, start_pos), ENEMY_SPEED),
         .texture = textures.enemy,
     );
