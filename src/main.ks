@@ -136,8 +136,7 @@ impl Unit as module = (
         program |> ugli.set_uniform("u_radius", unit^.radius, draw_state);
         program |> ugli.set_uniform("u_projection_matrix", projection_matrix, draw_state);
         program |> ugli.set_uniform("u_texture", unit^.texture, draw_state);
-        # TODO only upload data to GPU once
-        quad |> ugli.VertexBuffer.@"use"(program);
+        program |> ugli.set_vertex_data_source(quad);
         gl.draw_arrays(gl.TRIANGLE_FAN, 0, 4);
     );
 );

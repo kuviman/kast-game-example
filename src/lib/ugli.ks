@@ -361,27 +361,27 @@ const VertexBuffer = (
             .@"type",
         )
     );
-    
-    const @"use" = [V] (
-        buffer :: t[V],
-        program :: Program,
-    ) -> () => (
-        let ctx = program.ctx;
-        for &(.key = name, .value = field) in &buffer.fields |> Map.iter do (
-            let attribute_info = match &program.attributes |> Map.get(name) with (
-                | :Some(info) => info
-                | :None => continue
-            );
-            gl.bind_buffer(gl.ARRAY_BUFFER, field.buffer);
-            gl.vertex_attrib_pointer(
-                attribute_info^.index,
-                field.@"type".size,
-                field.@"type".@"type",
-                false,
-                field.stride,
-                field.offset,
-            );
-            gl.enable_vertex_attrib_array(attribute_info^.index);
+);
+
+const set_vertex_data_source = [V] (
+    program :: Program,
+    buffer :: VertexBuffer.t[V],
+) -> () => (
+    let ctx = program.ctx;
+    for &(.key = name, .value = field) in &buffer.fields |> Map.iter do (
+        let attribute_info = match &program.attributes |> Map.get(name) with (
+            | :Some(info) => info
+            | :None => continue
         );
+        gl.bind_buffer(gl.ARRAY_BUFFER, field.buffer);
+        gl.vertex_attrib_pointer(
+            attribute_info^.index,
+            field.@"type".size,
+            field.@"type".@"type",
+            false,
+            field.stride,
+            field.offset,
+        );
+        gl.enable_vertex_attrib_array(attribute_info^.index);
     );
 );
