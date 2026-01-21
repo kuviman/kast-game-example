@@ -1,6 +1,14 @@
 use std.collections.Map;
 include "lib/_lib.ks";
 
+const time = (
+    module:
+    
+    const now = () -> Float64 => (
+        (@native "performance.now()") / 1000
+    );
+);
+
 const load_image = (url :: String) -> web.HtmlImageElement => (
     (@native "Runtime.load_image")(url)
 );
@@ -99,8 +107,15 @@ let fov = 10;
 let mut pos :: Vec2 = (0, 0);
 let mut vel :: Vec2 = (1, 0);
 
+let mut t = time.now();
+
 loop (
-    let dt = 0.01;
+    let dt = (
+        let new_t = time.now();
+        let dt = new_t - t;
+        t = new_t;
+        dt
+    );
     vel = (0, 0);
     if input.is_key_pressed(:ArrowLeft) then (
         vel.0 -= 1;
