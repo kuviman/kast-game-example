@@ -1,6 +1,10 @@
 use std.collections.Map;
 include "lib/_lib.ks";
 
+const load_image = (url :: String) -> web.HtmlImageElement => (
+    (@native "Runtime.load_image")(url)
+);
+
 let document = web.document();
 let canvas :: web.HtmlCanvasElement = document
     |> web.HtmlDocumentElement.get_element_by_id("canvas")
@@ -87,6 +91,9 @@ const get_canvas_size = (canvas) -> (Float32, Float32) => (
     (@native "Runtime.get_canvas_size")(canvas)
 );
 
+let image = load_image("image.png");
+let texture = ugli.Texture.init(ctx, image);
+
 let fov = 4;
 
 loop (
@@ -102,7 +109,12 @@ loop (
     );
     
     program |> ugli.Program.@"use";
-    program |> ugli.set_uniform("u_projection_matrix", projection_matrix);
+    
+    let mut draw_state = ugli.DrawState.init();
+    let draw_state = &mut draw_state;
+    
+    program |> ugli.set_uniform("u_projection_matrix", projection_matrix, draw_state);
+    program |> ugli.set_uniform("u_texture", texture, draw_state);
     # TODO only upload data to GPU once
     ugli.bind_field(program, &quad, "a_pos", vertex => vertex^.a_pos);
     ctx |> GL.draw_arrays(gl.TRIANGLE_FAN, 0, List.length(&quad));

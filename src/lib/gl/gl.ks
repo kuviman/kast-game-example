@@ -284,7 +284,69 @@ impl Context as module = (
             .name,
         )
             |> js.check_null
-    )
+    );
+    
+    const create_texture = (
+        ctx :: Context
+    ) -> WebGLTexture => (
+        (@native "({ctx})=>ctx.createTexture()")(
+            .ctx,
+        )
+    );
+    
+    const bind_texture = (
+        ctx :: Context,
+        target :: GLenum,
+        texture :: WebGLTexture,
+    ) -> WebGLTexture => (
+        (@native "({ctx,target,texture})=>ctx.bindTexture(target,texture)")(
+            .ctx,
+            .target,
+            .texture,
+        )
+    );
+    
+    const tex_image_2d = (
+        ctx :: Context,
+        target :: GLenum,
+        level :: GLint,
+        internal_format :: GLenum,
+        format :: GLenum,
+        @"type" :: GLenum,
+        source :: js.Any,
+    ) -> WebGLTexture => (
+        (@native "({ctx,target,level,internal_format,format,type,source})=>ctx.texImage2D(target,level,internal_format,format,type,source)")(
+            .ctx,
+            .target,
+            .level,
+            .internal_format,
+            .format,
+            .@"type",
+            .source,
+        )
+    );
+    
+    const generate_mipmap = (
+        ctx :: Context,
+        target :: GLenum,
+    ) -> () => (
+        (@native "({ctx,target})=>ctx.generateMipmap(target)")(
+            .ctx,
+            .target,
+        )
+    );
+    
+    const pixel_store_bool = (
+        ctx :: Context,
+        pname :: GLenum,
+        value :: GLboolean,
+    ) -> () => (
+        (@native "({ctx,pname,value})=>ctx.pixelStorei(pname,value)")(
+            .ctx,
+            .pname,
+            .value,
+        )
+    );
 );
 
 const Shader = @opaque_type;
@@ -296,3 +358,4 @@ const ActiveInfo = newtype (
     .@"type" :: GLenum,
 );
 const WebGLUniformLocation = @opaque_type;
+const WebGLTexture = @opaque_type;

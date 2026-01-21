@@ -23,4 +23,13 @@ Runtime.get_canvas_size = (canvas) => {
   return { 0: canvas.width, 1: canvas.height };
 };
 
+Runtime.load_image = (url) => {
+  return new Promise((resolve, reject) => {
+    const image = new Image();
+    image.src = url;
+    image.onload = () => resolve(image);
+    image.onerror = reject;
+  });
+};
+
 window.Runtime = Runtime;

@@ -115,6 +115,31 @@ impl Program as module = (
     );
 );
 
+const Texture = newtype (
+    .handle :: gl.WebGLTexture,
+);
+
+impl Texture as module = (
+    module:
+    
+    const init = (ctx :: GL, image :: web.HtmlImageElement) -> Texture => (
+        let handle = ctx |> GL.create_texture;
+        ctx |> GL.bind_texture(gl.TEXTURE_2D, handle);
+        ctx |> GL.pixel_store_bool(gl.UNPACK_FLIP_Y_WEBGL, true);
+        ctx
+            |> GL.tex_image_2d(
+                gl.TEXTURE_2D,
+                0,
+                gl.RGBA,
+                gl.RGBA,
+                gl.UNSIGNED_BYTE,
+                image |> js.unsafe_cast
+            );
+        ctx |> GL.generate_mipmap(gl.TEXTURE_2D);
+        (.handle)
+    );
+);
+
 const VertexAttribute = [Self] newtype (
     .size :: gl.GLint,
     .@"type" :: gl.GLenum,
@@ -167,12 +192,24 @@ impl Vec4 as VertexAttribute = (
     ),
 );
 
+const DrawState = newtype (
+    .active_texture_index :: Int32,
+);
+
+impl DrawState as module = (
+    module:
+    
+    const init = () -> DrawState => (
+        .active_texture_index = 0,
+    );
+);
+
 const Uniform = [Self] newtype (
-    .set :: (GL, gl.WebGLUniformLocation, Self) -> (),
+    .set :: (GL, gl.WebGLUniformLocation, Self, &mut DrawState) -> (),
 );
 
 impl Mat3 as Uniform = (
-    .set = (ctx, location, value) => (
+    .set = (ctx, location, value, state) => (
         let list = js.List.init();
         let add = (x, y, z) => (
             list |> js.List.push(x);
@@ -193,17 +230,33 @@ impl Mat3 as Uniform = (
     ),
 );
 
+impl Texture as Uniform = (
+    .set = (ctx, location, value, state) => (
+        (@native "({ctx,i})=>ctx.activeTexture(i)")(
+            .ctx,
+            .i = gl.TEXTURE0 + state^.active_texture_index,
+        );
+        (@native "({ctx,location,i})=>ctx.uniform1i(location,i)")(
+            .ctx,
+            .location,
+            .i = state^.active_texture_index,
+        );
+        state^.active_texture_index += 1;
+    ),
+);
+
 const set_uniform = [T] (
     program :: Program,
     name :: String,
     value :: T,
+    state :: &mut DrawState,
 ) -> () => with_return (
     let ctx = program.ctx;
     let uniform_info = match &program.uniforms |> Map.get(name) with (
         | :Some(info) => info
         | :None => return
     );
-    (T as Uniform).set(ctx, uniform_info^.location, value);
+    (T as Uniform).set(ctx, uniform_info^.location, value, state);
 );
 
 const bind_field = [V, T] (
