@@ -30,9 +30,13 @@ let canvas :: web.HtmlCanvasElement = document
 let webgl :: web.WebGLRenderingContext = canvas
     |> web.HtmlCanvasElement.get_context("webgl")
     |> js.unsafe_cast;
-(@native "window.Runtime.setup_canvas_size")(
+let mut canvas_size = (.width = 1, .height = 1);
+(@native "window.Runtime.observe_canvas_size")(
     .canvas,
-    .webgl
+    .webgl,
+    .handler = size => (
+        canvas_size = size;
+    ),
 );
 
 with gl.Context = webgl;
@@ -92,10 +96,6 @@ let quad :: ugli.VertexBuffer.t[Vertex] = (
         ),
     );
     ugli.VertexBuffer.init(&data)
-);
-
-const get_canvas_size = (canvas) -> (Float32, Float32) => (
-    (@native "Runtime.get_canvas_size")(canvas)
 );
 
 let textures = (
@@ -226,8 +226,7 @@ loop (
     gl.clear_color(0.8, 0.8, 1.0, 1.0);
     gl.clear(gl.COLOR_BUFFER_BIT);
     
-    let (width, height) = canvas |> get_canvas_size;
-    let aspect = width / height;
+    let aspect = canvas_size.width / canvas_size.height;
     projection_matrix = (
         (2 / aspect / fov, 0, 0),
         (0, 2 / fov, 0),

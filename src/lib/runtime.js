@@ -1,13 +1,14 @@
 // @ts-nocheck
 const Runtime = {};
 
-Runtime.setup_canvas_size = ({ canvas, webgl }) => {
+Runtime.observe_canvas_size = ({ canvas, webgl, handler }) => {
   const observer = new ResizeObserver((entries) => {
     for (const entry of entries) {
       canvas.width = entry.contentRect.width;
       canvas.height = entry.contentRect.height;
       // TODO redraw
       webgl.viewport(0, 0, canvas.width, canvas.height);
+      handler({ width: canvas.width, height: canvas.height });
     }
   });
   observer.observe(canvas);
