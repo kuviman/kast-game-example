@@ -20,7 +20,7 @@ const load_image = (url :: String) -> web.HtmlImageElement => (
 );
 
 const await_animation_frame = () -> () => (
-    (@native "window.Runtime.await_animation_frame")()
+    (@native "Runtime.await_animation_frame")()
 );
 
 let document = web.document();
@@ -31,7 +31,7 @@ let webgl :: web.WebGLRenderingContext = canvas
     |> web.HtmlCanvasElement.get_context("webgl")
     |> js.unsafe_cast;
 let mut canvas_size = (.width = 1, .height = 1);
-(@native "window.Runtime.observe_canvas_size")(
+(@native "Runtime.observe_canvas_size")(
     .canvas,
     .webgl,
     .handler = size => (
