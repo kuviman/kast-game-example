@@ -29,7 +29,7 @@ let canvas :: web.HtmlCanvasElement = document
     |> js.unsafe_cast;
 let webgl :: web.WebGLRenderingContext = canvas
     |> web.HtmlCanvasElement.get_context("webgl")
-    |> js.unsafe_cast;
+    |> js.from_any;
 let mut canvas_size = (.width = 1, .height = 1);
 (@native "Runtime.observe_canvas_size")(
     .canvas,

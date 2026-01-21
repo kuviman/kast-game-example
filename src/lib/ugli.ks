@@ -138,7 +138,7 @@ impl Texture as module = (
             gl.RGBA,
             gl.RGBA,
             gl.UNSIGNED_BYTE,
-            image |> js.unsafe_cast
+            image |> js.into_any
         );
         gl.generate_mipmap(gl.TEXTURE_2D);
         (.handle)
