@@ -16,6 +16,26 @@ impl HtmlCanvasElement as module = (
             .context_type,
         )
     );
+    
+    const set_width = (
+        canvas :: HtmlCanvasElement,
+        width :: Int32,
+    ) -> () => (
+        (@native "({canvas,width})=>{canvas.width=width}")(
+            .canvas,
+            .width,
+        )
+    );
+    
+    const set_height = (
+        canvas :: HtmlCanvasElement,
+        height :: Int32,
+    ) -> () => (
+        (@native "({canvas,height})=>{canvas.height=height}")(
+            .canvas,
+            .height,
+        )
+    );
 );
 
 const HtmlDocumentElement = @opaque_type;

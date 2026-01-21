@@ -6,12 +6,28 @@ let canvas :: web.HtmlCanvasElement = document
     |> web.HtmlDocumentElement.get_element_by_id("canvas")
     |> js.unsafe_cast;
 
+const await_animation_frame = () -> () => (
+    (@native "window.Runtime.await_animation_frame")()
+);
+
 const GL = gl.Context;
 
-let ctx :: GL = canvas
-    |> web.HtmlCanvasElement.get_context("webgl")
-    |> js.unsafe_cast
-    |> GL.init;
+let ctx :: GL = (
+    let webgl :: web.WebGLRenderingContext = canvas
+        |> web.HtmlCanvasElement.get_context("webgl")
+        |> js.unsafe_cast;
+    
+    const setup_canvas_size = (canvas :: web.HtmlCanvasElement) -> () => (
+        (@native "window.Runtime.setup_canvas_size")(
+            .canvas,
+            .webgl
+        )
+    );
+    canvas |> setup_canvas_size;
+    
+    webgl
+        |> GL.init
+);
 
 ctx |> GL.clear_color(0.8, 0.8, 1.0, 1.0);
 ctx |> GL.clear(gl.COLOR_BUFFER_BIT);
@@ -48,6 +64,9 @@ for face in List.iter(&faces) do (
     &mut data |> List.push_back(face^.c);
 );
 
-program |> ugli.Program.@"use";
-ugli.bind_field(program, &data, "a_pos", vertex => vertex^.a_pos);
-ctx |> GL.draw_arrays(gl.TRIANGLES, 0, List.length(&data));
+loop (
+    program |> ugli.Program.@"use";
+    ugli.bind_field(program, &data, "a_pos", vertex => vertex^.a_pos);
+    ctx |> GL.draw_arrays(gl.TRIANGLES, 0, List.length(&data));
+    await_animation_frame();
+);
