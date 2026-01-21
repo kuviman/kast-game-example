@@ -28,15 +28,22 @@ const compile_shader = (ctx, shader_type, source) => (
     shader
 );
 
-const ActiveInfo = newtype (
+const AttributeInfo = newtype (
     .raw :: gl.ActiveInfo,
+    .index :: Int32,
+);
+
+const UniformInfo = newtype (
+    .raw :: gl.ActiveInfo,
+    .location :: gl.WebGLUniformLocation,
     .index :: Int32,
 );
 
 const Program = newtype (
     .ctx :: gl.Context,
     .handle :: gl.Program,
-    .attributes :: Map.t[String, ActiveInfo],
+    .attributes :: Map.t[String, AttributeInfo],
+    .uniforms :: Map.t[String, UniformInfo],
 );
 
 impl Program as module = (
@@ -69,16 +76,37 @@ impl Program as module = (
                 dbg.print(active_info);
                 panic("active_info.size != 1");
             );
-            let active_info = (
+            let attribute_info = (
                 .raw = active_info,
                 .index,
             );
-            Map.add(&mut attributes, active_info.raw.name, active_info);
+            Map.add(&mut attributes, attribute_info.raw.name, attribute_info);
+        );
+        let active_uniforms = ctx
+            |> GL.get_program_parameter_int(program, gl.ACTIVE_UNIFORMS);
+        let mut uniforms = Map.create();
+        for index in 0..active_uniforms do (
+            let active_info = ctx
+                |> GL.get_active_uniform(program, index);
+            if active_info.size != 1 then (
+                dbg.print(active_info);
+                panic("active_info.size != 1");
+            );
+            let location = ctx
+                |> GL.get_uniform_location(program, active_info.name)
+                |> Option.unwrap;
+            let uniform_info = (
+                .raw = active_info,
+                .location,
+                .index,
+            );
+            Map.add(&mut uniforms, uniform_info.raw.name, uniform_info);
         );
         (
             .ctx,
             .handle = program,
             .attributes,
+            .uniforms,
         )
     );
     
@@ -139,6 +167,45 @@ impl Vec4 as VertexAttribute = (
     ),
 );
 
+const Uniform = [Self] newtype (
+    .set :: (GL, gl.WebGLUniformLocation, Self) -> (),
+);
+
+impl Mat3 as Uniform = (
+    .set = (ctx, location, value) => (
+        let list = js.List.init();
+        let add = (x, y, z) => (
+            list |> js.List.push(x);
+            list |> js.List.push(y);
+            list |> js.List.push(z);
+        );
+        let (a, b, c) = value;
+        add(a);
+        add(b);
+        add(c);
+        let data = (@native "list=>new Float32Array(list)")(list);
+        dbg.print(.location, .value, .data);
+        (@native "({ctx,location,data})=>ctx.uniformMatrix3fv(location,false,data)")(
+            .ctx,
+            .data,
+            .location,
+        );
+    ),
+);
+
+const set_uniform = [T] (
+    program :: Program,
+    name :: String,
+    value :: T,
+) -> () => with_return (
+    let ctx = program.ctx;
+    let uniform_info = match &program.uniforms |> Map.get(name) with (
+        | :Some(info) => info
+        | :None => return
+    );
+    (T as Uniform).set(ctx, uniform_info^.location, value);
+);
+
 const bind_field = [V, T] (
     program :: Program,
     data :: &List.t[V],
@@ -146,7 +213,7 @@ const bind_field = [V, T] (
     get :: &V -> T,
 ) => with_return (
     let ctx = program.ctx;
-    let active_info = match &program.attributes |> Map.get(name) with (
+    let attribute_info = match &program.attributes |> Map.get(name) with (
         | :Some(info) => info
         | :None => return
     );
@@ -171,12 +238,12 @@ const bind_field = [V, T] (
     );
     GL.vertex_attrib_pointer(
         ctx,
-        active_info^.index,
+        attribute_info^.index,
         (T as VertexAttribute).size,
         (T as VertexAttribute).@"type",
         false,
         stride,
         offset,
     );
-    ctx |> GL.enable_vertex_attrib_array(active_info^.index);
+    ctx |> GL.enable_vertex_attrib_array(attribute_info^.index);
 );

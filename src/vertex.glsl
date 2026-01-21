@@ -5,7 +5,10 @@ attribute vec4 a_color;
 
 varying vec4 v_color;
 
+uniform mat3 u_projection_matrix;
+
 void main() {
     v_color = a_color;
-    gl_Position = vec4(a_pos / 5.0, 0.0, 1.0);
+    vec3 screen_pos = u_projection_matrix * vec3(a_pos, 1.0);
+    gl_Position = vec4(screen_pos.xy, 0.0, screen_pos.z);
 }

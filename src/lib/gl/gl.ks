@@ -259,6 +259,31 @@ impl Context as module = (
             .program,
             .index,
         )
+    );
+    
+    const get_active_uniform = (
+        ctx :: Context,
+        program :: Program,
+        index :: GLuint,
+    ) -> ActiveInfo => (
+        (@native "({ctx,program,index})=>ctx.getActiveUniform(program,index)")(
+            .ctx,
+            .program,
+            .index,
+        )
+    );
+    
+    const get_uniform_location = (
+        ctx :: Context,
+        program :: Program,
+        name :: String,
+    ) -> Option.t[WebGLUniformLocation] => (
+        (@native "({ctx,program,name})=>ctx.getUniformLocation(program,name)")(
+            .ctx,
+            .program,
+            .name,
+        )
+            |> js.check_null
     )
 );
 
@@ -270,3 +295,4 @@ const ActiveInfo = newtype (
     .size :: GLsizei,
     .@"type" :: GLenum,
 );
+const WebGLUniformLocation = @opaque_type;

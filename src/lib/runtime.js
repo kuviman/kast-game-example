@@ -19,4 +19,8 @@ Runtime.await_animation_frame = () => {
   });
 };
 
+Runtime.get_canvas_size = (canvas) => {
+  return { 0: canvas.width, 1: canvas.height };
+};
+
 window.Runtime = Runtime;

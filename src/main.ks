@@ -29,9 +29,6 @@ let ctx :: GL = (
         |> GL.init
 );
 
-ctx |> GL.clear_color(0.8, 0.8, 1.0, 1.0);
-ctx |> GL.clear(gl.COLOR_BUFFER_BIT);
-
 const VERTEX_SHADER_SOURCE = std.fs.read_file(
     std.path.dirname(__FILE__) + "/vertex.glsl"
 );
@@ -53,20 +50,61 @@ let program = (
     ctx |> ugli.Program.init(vertex_shader, fragment_shader)
 );
 
-const teapot_src = std.fs.read_file(
-    std.path.dirname(__FILE__) + "/test.obj"
-);
-let faces = obj.parse(teapot_src);
-let mut data = List.create();
-for face in List.iter(&faces) do (
-    &mut data |> List.push_back(face^.a);
-    &mut data |> List.push_back(face^.b);
-    &mut data |> List.push_back(face^.c);
+const Vertex = newtype (
+    .a_pos :: Vec2,
 );
 
+let quad = (
+    let mut data :: List.t[Vertex] = List.create();
+    List.push_back(
+        &mut data,
+        (
+            .a_pos = (0, 0),
+        ),
+    );
+    List.push_back(
+        &mut data,
+        (
+            .a_pos = (1, 0),
+        ),
+    );
+    List.push_back(
+        &mut data,
+        (
+            .a_pos = (1, 1),
+        ),
+    );
+    List.push_back(
+        &mut data,
+        (
+            .a_pos = (0, 1),
+        ),
+    );
+    data
+);
+
+const get_canvas_size = (canvas) -> (Float32, Float32) => (
+    (@native "Runtime.get_canvas_size")(canvas)
+);
+
+let fov = 4;
+
 loop (
+    ctx |> GL.clear_color(0.8, 0.8, 1.0, 1.0);
+    ctx |> GL.clear(gl.COLOR_BUFFER_BIT);
+    
+    let (width, height) = canvas |> get_canvas_size;
+    let aspect = width / height;
+    let projection_matrix :: Mat3 = (
+        (2 / aspect / fov, 0, 0),
+        (0, 2 / fov, 0),
+        (0, 0, 1),
+    );
+    
     program |> ugli.Program.@"use";
-    ugli.bind_field(program, &data, "a_pos", vertex => vertex^.a_pos);
-    ctx |> GL.draw_arrays(gl.TRIANGLES, 0, List.length(&data));
+    program |> ugli.set_uniform("u_projection_matrix", projection_matrix);
+    # TODO only upload data to GPU once
+    ugli.bind_field(program, &quad, "a_pos", vertex => vertex^.a_pos);
+    ctx |> GL.draw_arrays(gl.TRIANGLE_FAN, 0, List.length(&quad));
     await_animation_frame();
 );
