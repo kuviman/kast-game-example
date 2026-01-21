@@ -119,13 +119,33 @@ const Texture = newtype (
     .handle :: gl.WebGLTexture,
 );
 
+const Filter = newtype (
+    | :Nearest
+    | :Linear
+);
+
 impl Texture as module = (
     module:
     
-    const init = (ctx :: GL, image :: web.HtmlImageElement) -> Texture => (
+    const init = (
+        ctx :: GL,
+        image :: web.HtmlImageElement,
+        filter :: Filter,
+    ) -> Texture => (
         let handle = ctx |> GL.create_texture;
         ctx |> GL.bind_texture(gl.TEXTURE_2D, handle);
         ctx |> GL.pixel_store_bool(gl.UNPACK_FLIP_Y_WEBGL, true);
+        match filter with (
+            | :Linear => ()
+            | :Nearest => (
+                ctx
+                    |> GL.tex_parameter_i(
+                        gl.TEXTURE_2D,
+                        gl.TEXTURE_MAG_FILTER,
+                        gl.NEAREST
+                    );
+            )
+        );
         ctx
             |> GL.tex_image_2d(
                 gl.TEXTURE_2D,

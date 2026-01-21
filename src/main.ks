@@ -92,7 +92,7 @@ const get_canvas_size = (canvas) -> (Float32, Float32) => (
 );
 
 let image = load_image("image.png");
-let texture = ugli.Texture.init(ctx, image);
+let texture = ugli.Texture.init(ctx, image, :Nearest);
 
 let fov = 10;
 

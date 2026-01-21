@@ -326,6 +326,34 @@ impl Context as module = (
         )
     );
     
+    const tex_parameter_i = (
+        ctx :: Context,
+        target :: GLenum,
+        pname :: GLenum,
+        param :: GLint,
+    ) -> WebGLTexture => (
+        (@native "({ctx,target,pname,param})=>ctx.texParameteri(target,pname,param)")(
+            .ctx,
+            .target,
+            .pname,
+            .param,
+        )
+    );
+    
+    const tex_parameter_f = (
+        ctx :: Context,
+        target :: GLenum,
+        pname :: GLenum,
+        param :: GLfloat,
+    ) -> WebGLTexture => (
+        (@native "({ctx,target,pname,param})=>ctx.texParameterf(target,pname,param)")(
+            .ctx,
+            .target,
+            .pname,
+            .param,
+        )
+    );
+    
     const generate_mipmap = (
         ctx :: Context,
         target :: GLenum,
