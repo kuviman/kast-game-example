@@ -1,6 +1,7 @@
 use std.collections.Map;
 include "lib/_lib.ks";
 
+const BACKGROUND_COLOR = (0.8, 0.8, 1.0, 1.0);
 const ENEMY_SPAWN_TIME = 1;
 const ENEMY_SPEED = 0.3;
 const PLAYER_SPEED = 3;
@@ -223,8 +224,7 @@ loop (
         );
     );
     
-    gl.clear_color(0.8, 0.8, 1.0, 1.0);
-    gl.clear(gl.COLOR_BUFFER_BIT);
+    ugli.clear(BACKGROUND_COLOR);
     
     let aspect = canvas_size.width / canvas_size.height;
     projection_matrix = (

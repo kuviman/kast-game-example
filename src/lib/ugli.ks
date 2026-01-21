@@ -1,5 +1,10 @@
 module:
 
+const clear = (color :: Vec4) => (
+    gl.clear_color(color);
+    gl.clear(gl.COLOR_BUFFER_BIT);
+);
+
 const SizedType = [Self] newtype (
     .size :: Int32,
 );
