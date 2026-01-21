@@ -32,4 +32,18 @@ Runtime.load_image = (url) => {
   });
 };
 
+const pressed_keys = {};
+window.addEventListener("keydown", (e) => {
+  pressed_keys[e.code] = true;
+});
+window.addEventListener("keyup", (e) => {
+  pressed_keys[e.code] = false;
+});
+
+Runtime.is_key_pressed = (key) => {
+  const key_name = key.tag.description;
+  const pressed = pressed_keys[key_name] === true;
+  return pressed;
+};
+
 window.Runtime = Runtime;

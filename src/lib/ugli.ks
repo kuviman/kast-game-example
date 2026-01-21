@@ -314,8 +314,6 @@ const bind_field = [V, T] (
     ctx |> GL.bind_buffer(gl.ARRAY_BUFFER, buffer);
     ctx |> GL.buffer_data(gl.ARRAY_BUFFER, field_data, gl.STATIC_DRAW);
     
-    dbg.print(field_data);
-    
     let offset = 0;
     let stride = (
         (T as VertexAttribute).size
