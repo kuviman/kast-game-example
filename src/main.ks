@@ -54,10 +54,12 @@ let check_collision = (a :: &Unit, b :: &Unit) -> Bool => (
     and abs(a^.pos.1 - b^.pos.1) < a^.radius + b^.radius
 );
 
-let mut player :: Option.t[Unit] = :Some(.pos = (0, 0),
-.radius = PLAYER_RADIUS,
-.vel = (0, 0),
-.texture = textures.player,);
+let mut player :: Option.t[Unit] = :Some(
+    .pos = (0, 0),
+    .radius = PLAYER_RADIUS,
+    .vel = (0, 0),
+    .texture = textures.player,
+);
 
 use std.collections.Treap;
 
