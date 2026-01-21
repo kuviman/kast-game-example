@@ -19,46 +19,34 @@ const load_image = (url :: String) -> web.HtmlImageElement => (
     (@native "Runtime.load_image")(url)
 );
 
-let document = web.document();
-let canvas :: web.HtmlCanvasElement = document
-    |> web.HtmlDocumentElement.get_element_by_id("canvas")
-    |> js.unsafe_cast;
-
 const await_animation_frame = () -> () => (
     (@native "window.Runtime.await_animation_frame")()
 );
 
-const GL = gl.Context;
-
-let ctx :: GL = (
-    let webgl :: web.WebGLRenderingContext = canvas
-        |> web.HtmlCanvasElement.get_context("webgl")
-        |> js.unsafe_cast;
-    
-    const setup_canvas_size = (canvas :: web.HtmlCanvasElement) -> () => (
-        (@native "window.Runtime.setup_canvas_size")(
-            .canvas,
-            .webgl
-        )
-    );
-    canvas |> setup_canvas_size;
-    
-    webgl
-        |> GL.init
+let document = web.document();
+let canvas :: web.HtmlCanvasElement = document
+    |> web.HtmlDocumentElement.get_element_by_id("canvas")
+    |> js.unsafe_cast;
+let webgl :: web.WebGLRenderingContext = canvas
+    |> web.HtmlCanvasElement.get_context("webgl")
+    |> js.unsafe_cast;
+(@native "window.Runtime.setup_canvas_size")(
+    .canvas,
+    .webgl
 );
 
+with gl.Context = webgl;
+
 let program = (
-    let vertex_shader = ctx
-        |> ugli.compile_shader(
-            gl.VERTEX_SHADER,
-            fetch_string("vertex.glsl")
-        );
-    let fragment_shader = ctx
-        |> ugli.compile_shader(
-            gl.FRAGMENT_SHADER,
-            fetch_string("fragment.glsl")
-        );
-    ctx |> ugli.Program.init(vertex_shader, fragment_shader)
+    let vertex_shader = ugli.compile_shader(
+        gl.VERTEX_SHADER,
+        fetch_string("vertex.glsl")
+    );
+    let fragment_shader = ugli.compile_shader(
+        gl.FRAGMENT_SHADER,
+        fetch_string("fragment.glsl")
+    );
+    ugli.Program.init(vertex_shader, fragment_shader)
 );
 
 const Vertex = newtype (
@@ -67,9 +55,9 @@ const Vertex = newtype (
 );
 
 impl Vertex as ugli.Vertex = (
-    .init_fields = (ctx, data, f) => (
-        f("a_pos", ugli.VertexBuffer.init_field(ctx, data, v => v^.a_pos));
-        f("a_uv", ugli.VertexBuffer.init_field(ctx, data, v => v^.a_uv));
+    .init_fields = (data, f) => (
+        f("a_pos", ugli.VertexBuffer.init_field(data, v => v^.a_pos));
+        f("a_uv", ugli.VertexBuffer.init_field(data, v => v^.a_uv));
     ),
 );
 
@@ -103,7 +91,7 @@ let quad :: ugli.VertexBuffer.t[Vertex] = (
             .a_uv = (0, 1),
         ),
     );
-    ugli.VertexBuffer.init(ctx, &data)
+    ugli.VertexBuffer.init(&data)
 );
 
 const get_canvas_size = (canvas) -> (Float32, Float32) => (
@@ -111,8 +99,8 @@ const get_canvas_size = (canvas) -> (Float32, Float32) => (
 );
 
 let textures = (
-    .player = ugli.Texture.init(ctx, load_image("player.png"), :Nearest),
-    .enemy = ugli.Texture.init(ctx, load_image("enemy.png"), :Nearest)
+    .player = ugli.Texture.init(load_image("player.png"), :Nearest),
+    .enemy = ugli.Texture.init(load_image("enemy.png"), :Nearest)
 );
 
 let mut projection_matrix :: Mat3 = (
@@ -149,7 +137,7 @@ impl Unit as module = (
         program |> ugli.set_uniform("u_texture", unit^.texture, draw_state);
         # TODO only upload data to GPU once
         quad |> ugli.VertexBuffer.@"use"(program);
-        ctx |> GL.draw_arrays(gl.TRIANGLE_FAN, 0, 4);
+        gl.draw_arrays(gl.TRIANGLE_FAN, 0, 4);
     );
 );
 
@@ -235,8 +223,8 @@ loop (
         );
     );
     
-    ctx |> GL.clear_color(0.8, 0.8, 1.0, 1.0);
-    ctx |> GL.clear(gl.COLOR_BUFFER_BIT);
+    gl.clear_color(0.8, 0.8, 1.0, 1.0);
+    gl.clear(gl.COLOR_BUFFER_BIT);
     
     let (width, height) = canvas |> get_canvas_size;
     let aspect = width / height;

@@ -1,7 +1,5 @@
 module:
 
-const GL = gl.Context;
-
 const SizedType = [Self] newtype (
     .size :: Int32,
 );
@@ -10,19 +8,16 @@ impl Float32 as SizedType = (
     .size = 4,
 );
 
-const compile_shader = (ctx, shader_type, source) => (
-    let shader = ctx
-        |> GL.create_shader(shader_type)
+const compile_shader = (shader_type, source) => (
+    let shader = gl.create_shader(shader_type)
         |> Option.unwrap;
-    ctx |> GL.shader_source(shader, source);
-    ctx |> GL.compile_shader(shader);
-    let compile_status = ctx
-        |> GL.get_shader_parameter_bool(
-            shader, gl.COMPILE_STATUS
-        );
+    gl.shader_source(shader, source);
+    gl.compile_shader(shader);
+    let compile_status = gl.get_shader_parameter_bool(
+        shader, gl.COMPILE_STATUS
+    );
     if not compile_status then (
-        let log = ctx
-            |> GL.get_shader_info_log(shader);
+        let log = gl.get_shader_info_log(shader);
         panic("Shader compilation failed: " + log);
     );
     shader
@@ -40,7 +35,7 @@ const UniformInfo = newtype (
 );
 
 const Program = newtype (
-    .ctx :: gl.Context,
+    .ctx :: gl.ContextT,
     .handle :: gl.Program,
     .attributes :: Map.t[String, AttributeInfo],
     .uniforms :: Map.t[String, UniformInfo],
@@ -50,28 +45,24 @@ impl Program as module = (
     module:
     
     const init = (
-        ctx,
         vertex_shader :: gl.Shader,
         fragment_shader :: gl.Shader,
     ) -> Program => (
-        let program = ctx
-            |> GL.create_program
+        let ctx = (@current gl.Context);
+        let program = gl.create_program()
             |> Option.unwrap;
-        ctx |> GL.attach_shader(program, vertex_shader);
-        ctx |> GL.attach_shader(program, fragment_shader);
-        ctx |> GL.link_program(program);
-        let link_status = ctx |> GL.get_program_parameter_bool(program, gl.LINK_STATUS);
+        gl.attach_shader(program, vertex_shader);
+        gl.attach_shader(program, fragment_shader);
+        gl.link_program(program);
+        let link_status = gl.get_program_parameter_bool(program, gl.LINK_STATUS);
         if not link_status then (
-            let log = ctx
-                |> GL.get_program_info_log(program);
+            let log = gl.get_program_info_log(program);
             panic("Program link failed: " + log);
         );
-        let active_attributes = ctx
-            |> GL.get_program_parameter_int(program, gl.ACTIVE_ATTRIBUTES);
+        let active_attributes = gl.get_program_parameter_int(program, gl.ACTIVE_ATTRIBUTES);
         let mut attributes = Map.create();
         for index in 0..active_attributes do (
-            let active_info = ctx
-                |> GL.get_active_attrib(program, index);
+            let active_info = gl.get_active_attrib(program, index);
             if active_info.size != 1 then (
                 dbg.print(active_info);
                 panic("active_info.size != 1");
@@ -82,18 +73,15 @@ impl Program as module = (
             );
             Map.add(&mut attributes, attribute_info.raw.name, attribute_info);
         );
-        let active_uniforms = ctx
-            |> GL.get_program_parameter_int(program, gl.ACTIVE_UNIFORMS);
+        let active_uniforms = gl.get_program_parameter_int(program, gl.ACTIVE_UNIFORMS);
         let mut uniforms = Map.create();
         for index in 0..active_uniforms do (
-            let active_info = ctx
-                |> GL.get_active_uniform(program, index);
+            let active_info = gl.get_active_uniform(program, index);
             if active_info.size != 1 then (
                 dbg.print(active_info);
                 panic("active_info.size != 1");
             );
-            let location = ctx
-                |> GL.get_uniform_location(program, active_info.name)
+            let location = gl.get_uniform_location(program, active_info.name)
                 |> Option.unwrap;
             let uniform_info = (
                 .raw = active_info,
@@ -111,7 +99,7 @@ impl Program as module = (
     );
     
     const @"use" = (program :: Program) => (
-        program.ctx |> GL.use_program(program.handle);
+        gl.use_program(program.handle);
     );
 );
 
@@ -128,34 +116,31 @@ impl Texture as module = (
     module:
     
     const init = (
-        ctx :: GL,
         image :: web.HtmlImageElement,
         filter :: Filter,
     ) -> Texture => (
-        let handle = ctx |> GL.create_texture;
-        ctx |> GL.bind_texture(gl.TEXTURE_2D, handle);
-        ctx |> GL.pixel_store_bool(gl.UNPACK_FLIP_Y_WEBGL, true);
+        let handle = gl.create_texture();
+        gl.bind_texture(gl.TEXTURE_2D, handle);
+        gl.pixel_store_bool(gl.UNPACK_FLIP_Y_WEBGL, true);
         match filter with (
             | :Linear => ()
             | :Nearest => (
-                ctx
-                    |> GL.tex_parameter_i(
-                        gl.TEXTURE_2D,
-                        gl.TEXTURE_MAG_FILTER,
-                        gl.NEAREST
-                    );
+                gl.tex_parameter_i(
+                    gl.TEXTURE_2D,
+                    gl.TEXTURE_MAG_FILTER,
+                    gl.NEAREST
+                );
             )
         );
-        ctx
-            |> GL.tex_image_2d(
-                gl.TEXTURE_2D,
-                0,
-                gl.RGBA,
-                gl.RGBA,
-                gl.UNSIGNED_BYTE,
-                image |> js.unsafe_cast
-            );
-        ctx |> GL.generate_mipmap(gl.TEXTURE_2D);
+        gl.tex_image_2d(
+            gl.TEXTURE_2D,
+            0,
+            gl.RGBA,
+            gl.RGBA,
+            gl.UNSIGNED_BYTE,
+            image |> js.unsafe_cast
+        );
+        gl.generate_mipmap(gl.TEXTURE_2D);
         (.handle)
     );
 );
@@ -235,11 +220,12 @@ impl DrawState as module = (
 );
 
 const Uniform = [Self] newtype (
-    .set :: (GL, gl.WebGLUniformLocation, Self, &mut DrawState) -> (),
+    .set :: (gl.WebGLUniformLocation, Self, &mut DrawState) -> (),
 );
 
 impl Float32 as Uniform = (
-    .set = (ctx, location, x, state) => (
+    .set = (location, x, state) => (
+        let ctx = (@current gl.Context);
         let list = js.List.init();
         (@native "({ctx,location,x})=>ctx.uniform1f(location,x)")(
             .ctx,
@@ -250,7 +236,8 @@ impl Float32 as Uniform = (
 );
 
 impl Vec2 as Uniform = (
-    .set = (ctx, location, value, state) => (
+    .set = (location, value, state) => (
+        let ctx = (@current gl.Context);
         let list = js.List.init();
         let (x, y) = value;
         (@native "({ctx,location,x,y})=>ctx.uniform2f(location,x,y)")(
@@ -263,7 +250,8 @@ impl Vec2 as Uniform = (
 );
 
 impl Mat3 as Uniform = (
-    .set = (ctx, location, value, state) => (
+    .set = (location, value, state) => (
+        let ctx = (@current gl.Context);
         let list = js.List.init();
         let add = (x, y, z) => (
             list |> js.List.push(x);
@@ -284,12 +272,13 @@ impl Mat3 as Uniform = (
 );
 
 impl Texture as Uniform = (
-    .set = (ctx, location, texture, state) => (
+    .set = (location, texture, state) => (
+        let ctx = (@current gl.Context);
         (@native "({ctx,i})=>ctx.activeTexture(i)")(
             .ctx,
             .i = gl.TEXTURE0 + state^.active_texture_index,
         );
-        ctx |> GL.bind_texture(gl.TEXTURE_2D, texture.handle);
+        gl.bind_texture(gl.TEXTURE_2D, texture.handle);
         (@native "({ctx,location,i})=>ctx.uniform1i(location,i)")(
             .ctx,
             .location,
@@ -310,11 +299,11 @@ const set_uniform = [T] (
         | :Some(info) => info
         | :None => return
     );
-    (T as Uniform).set(ctx, uniform_info^.location, value, state);
+    (T as Uniform).set(uniform_info^.location, value, state);
 );
 
 const Vertex = [Self] newtype (
-    .init_fields :: (GL, &List.t[Self], (String, VertexBuffer.Field) -> ()) -> (),
+    .init_fields :: (&List.t[Self], (String, VertexBuffer.Field) -> ()) -> (),
 );
 
 const VertexBuffer = (
@@ -331,10 +320,9 @@ const VertexBuffer = (
         .fields :: Map.t[String, Field],
     );
     
-    const init = [V] (ctx :: GL, data :: &List.t[V]) -> t[V] => (
+    const init = [V] (data :: &List.t[V]) -> t[V] => (
         let mut fields = Map.create();
         (V as Vertex).init_fields(
-            ctx,
             data,
             (name, field) => (
                 Map.add(&mut fields, name, field);
@@ -344,7 +332,6 @@ const VertexBuffer = (
     );
     
     const init_field = [V, T] (
-        ctx :: GL,
         data :: &List.t[V],
         get :: &V -> T,
     ) -> Field => (
@@ -355,9 +342,9 @@ const VertexBuffer = (
         );
         let field_data = (T as VertexAttribute).construct_data(&field_data);
         
-        let buffer = ctx |> GL.create_buffer;
-        ctx |> GL.bind_buffer(gl.ARRAY_BUFFER, buffer);
-        ctx |> GL.buffer_data(gl.ARRAY_BUFFER, field_data, gl.STATIC_DRAW);
+        let buffer = gl.create_buffer();
+        gl.bind_buffer(gl.ARRAY_BUFFER, buffer);
+        gl.buffer_data(gl.ARRAY_BUFFER, field_data, gl.STATIC_DRAW);
         
         let offset = 0;
         let @"type" = (T as VertexAttribute).@"type";
@@ -380,9 +367,8 @@ const VertexBuffer = (
                 | :Some(info) => info
                 | :None => continue
             );
-            ctx |> GL.bind_buffer(gl.ARRAY_BUFFER, field.buffer);
-            GL.vertex_attrib_pointer(
-                ctx,
+            gl.bind_buffer(gl.ARRAY_BUFFER, field.buffer);
+            gl.vertex_attrib_pointer(
                 attribute_info^.index,
                 field.@"type".size,
                 field.@"type".@"type",
@@ -390,7 +376,7 @@ const VertexBuffer = (
                 field.stride,
                 field.offset,
             );
-            ctx |> GL.enable_vertex_attrib_array(attribute_info^.index);
+            gl.enable_vertex_attrib_array(attribute_info^.index);
         );
     );
 );
