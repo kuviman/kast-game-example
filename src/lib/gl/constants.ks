@@ -36,7 +36,7 @@ const SRC_ALPHA_SATURATE :: GLenum = 0x0308;
 const FUNC_ADD :: GLenum = 0x8006;
 const BLEND_EQUATION :: GLenum = 0x8009;
 const BLEND_EQUATION_RGB :: GLenum = 0x8009;
- # same as BLEND_EQUATION
+# same as BLEND_EQUATION
 const BLEND_EQUATION_ALPHA :: GLenum = 0x883D;
 
 # BlendSubtract
