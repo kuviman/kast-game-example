@@ -17,10 +17,12 @@ let textures = (
     .enemy = ugli.Texture.init(load_image("enemy.png"), :Nearest)
 );
 
-let mut projection_matrix :: Mat3 = (
-    (1, 0, 0),
-    (0, 1, 0),
-    (0, 0, 1),
+with geng.Camera = (
+    .projection_matrix = (
+        (1, 0, 0),
+        (0, 1, 0),
+        (0, 0, 1),
+    ),
 );
 
 let fov = 10;
@@ -43,7 +45,6 @@ impl Unit as module = (
         geng.draw_quad(
             .pos = unit^.pos,
             .radius = unit^.radius,
-            .projection_matrix,
             .texture = unit^.texture,
         );
     );
@@ -128,7 +129,7 @@ loop (
     ugli.clear(BACKGROUND_COLOR);
     
     let aspect = geng_ctx.canvas_size.width / geng_ctx.canvas_size.height;
-    projection_matrix = (
+    (@current geng.Camera).projection_matrix = (
         (2 / aspect / fov, 0, 0),
         (0, 2 / fov, 0),
         (0, 0, 1),

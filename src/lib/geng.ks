@@ -99,13 +99,17 @@ const canvas_size = () => (
     (@current Context).canvas_size
 );
 
+const Camera = @context newtype (
+    .projection_matrix :: Mat3,
+);
+
 const draw_quad = (
     .pos :: Vec2,
     .radius :: Float32,
-    .projection_matrix :: Mat3,
     .texture :: ugli.Texture,
 ) => (
     let ctx = (@current Context);
+    let camera = (@current Camera);
     let program = ctx.quad.program;
     program |> ugli.Program.@"use";
     
@@ -114,7 +118,7 @@ const draw_quad = (
     
     program |> ugli.set_uniform("u_pos", pos, draw_state);
     program |> ugli.set_uniform("u_radius", radius, draw_state);
-    program |> ugli.set_uniform("u_projection_matrix", projection_matrix, draw_state);
+    program |> ugli.set_uniform("u_projection_matrix", camera.projection_matrix, draw_state);
     program |> ugli.set_uniform("u_texture", texture, draw_state);
     program |> ugli.set_vertex_data_source(ctx.quad.buffer);
     gl.draw_arrays(gl.TRIANGLE_FAN, 0, 4);
