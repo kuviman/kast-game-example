@@ -117,6 +117,22 @@ const Filter = newtype (
     | :Linear
 );
 
+const Wrap = newtype (
+    | :Repeat
+    | :ClampToEdge
+);
+
+impl Wrap as module = (
+    module:
+    
+    const to_gl = (wrap :: Wrap) -> gl.GLenum => (
+        match wrap with (
+            | :Repeat => gl.REPEAT
+            | :ClampToEdge => gl.CLAMP_TO_EDGE
+        )
+    );
+);
+
 impl Texture as module = (
     module:
     
@@ -158,6 +174,24 @@ impl Texture as module = (
             gl.CLAMP_TO_EDGE,
         );
         (.handle)
+    );
+    
+    const set_wrap_separate = (
+        texture :: &mut Texture,
+        s :: Wrap,
+        t :: Wrap,
+    ) -> () => (
+        gl.bind_texture(gl.TEXTURE_2D, texture^.handle);
+        gl.tex_parameter_i(
+            gl.TEXTURE_2D,
+            gl.TEXTURE_WRAP_S,
+            s |> Wrap.to_gl,
+        );
+        gl.tex_parameter_i(
+            gl.TEXTURE_2D,
+            gl.TEXTURE_WRAP_T,
+            t |> Wrap.to_gl,
+        );
     );
 );
 

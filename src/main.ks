@@ -5,17 +5,43 @@ let (.geng = geng_ctx, .gl = gl_ctx) = geng.init();
 with geng.Context = geng_ctx;
 with gl.Context = gl_ctx;
 
+let grass_program = (
+    let vertex_shader = ugli.compile_shader(
+        gl.VERTEX_SHADER,
+        fetch_string("shaders/grass/vertex.glsl")
+    );
+    let fragment_shader = ugli.compile_shader(
+        gl.FRAGMENT_SHADER,
+        fetch_string("shaders/grass/fragment.glsl")
+    );
+    ugli.Program.init(vertex_shader, fragment_shader)
+);
+
+const PLAYER_OFFSET = 2;
 const BACKGROUND_COLOR = (0, 0, 0.1, 1);
 const ENEMY_SPAWN_TIME = 1;
 const ENEMY_SPEED = 0.3;
+const ENEMY_SPAWN_DISTANCE = (.min = 3, .max = 7);
 const PLAYER_SPEED = 3;
+const PLAYER_MAX_VERTICAL_SPEED = 5;
+const JUMP_SPEED = 10;
+const PLAYER_ACCEL = 20;
 const PLAYER_RADIUS = 0.3;
 const ENEMY_RADIUS = 0.3;
-const FOV = 10;
+const FOV = 5;
+const GRAVITY = 10;
+
+const GROUND = 0;
+const MAX_HEIGHT = 3;
 
 let textures = (
     .player = ugli.Texture.init(load_image("unicorn.png"), :Nearest),
-    .enemy = ugli.Texture.init(load_image("stopsign.png"), :Nearest)
+    .enemy = ugli.Texture.init(load_image("angry.png"), :Nearest),
+    .grass = (
+        let mut texture = ugli.Texture.init(load_image("grass.png"), :Nearest);
+        &mut texture |> ugli.Texture.set_wrap_separate(:Repeat, :ClampToEdge);
+        texture
+    ),
 );
 
 const Unit = newtype (
@@ -23,6 +49,7 @@ const Unit = newtype (
     .half_size :: Vec2,
     .vel :: Vec2,
     .texture :: ugli.Texture,
+    .on_ground :: Bool,
 );
 
 impl Unit as module = (
@@ -51,68 +78,108 @@ let mut player :: Option.t[Unit] = :Some(
     .half_size = (PLAYER_RADIUS, PLAYER_RADIUS),
     .vel = (0, 0),
     .texture = textures.player,
+    .on_ground = false,
+);
+
+let mut camera :: geng.Camera = (
+    .pos = (0, (GROUND + MAX_HEIGHT) / 2),
+    .fov = FOV,
 );
 
 use std.collections.Treap;
 
 let mut enemies = Treap.create();
 let spawn_enemy = () => (
-    let edge = FOV / 2;
-    let start_pos = (std.random.gen_range(.min = -edge, .max = +edge), -edge);
-    let end_pos = (std.random.gen_range(.min = -edge, .max = +edge), +edge);
+    let x = camera.pos.0 + FOV;
+    let y = std.random.gen_range(
+        .min = -FOV / 2,
+        .max = +FOV / 2,
+    );
     let enemy = (
-        .pos = start_pos,
-        .half_size = (ENEMY_RADIUS, ENEMY_RADIUS * 2),
-        .vel = Vec2.mul(Vec2.sub(end_pos, start_pos), ENEMY_SPEED),
+        .pos = (x, y),
+        .half_size = (ENEMY_RADIUS, ENEMY_RADIUS),
+        .vel = (0, 0),
         .texture = textures.enemy,
+        .on_ground = true,
     );
     enemies = Treap.join(enemies, Treap.singleton(enemy));
 );
 
 let start_time = time.now();
 let mut t = time.now();
-let mut next_enemy = ENEMY_SPAWN_TIME;
+let mut next_enemy = camera.pos.0;
 
-let mut camera :: geng.Camera = (
-    .pos = (0, 0),
-    .fov = FOV,
+let draw_grass = () => (
+    let camera = (@current geng.CameraCtx);
+    let geng = (@current geng.Context);
+    let program = grass_program;
+    program |> ugli.Program.@"use";
+    
+    let mut draw_state = ugli.DrawState.init();
+    let draw_state = &mut draw_state;
+    
+    program |> ugli.set_uniform("u_ground", GROUND, draw_state);
+    program |> ugli.set_uniform("u_view_matrix", camera.view_matrix, draw_state);
+    program |> ugli.set_uniform("u_projection_matrix", camera.projection_matrix, draw_state);
+    program |> ugli.set_uniform("u_texture", textures.grass, draw_state);
+    program |> ugli.set_uniform("u_texture_size_in_world_coords", Vec2.mul((32, 8), 2 * 0.3 / 16), draw_state);
+    program |> ugli.set_vertex_data_source(geng.quad.buffer);
+    gl.draw_arrays(gl.TRIANGLE_FAN, 0, 4);
 );
 
 loop (
+    let framebuffer_size = (
+        geng_ctx.canvas_size.width,
+        geng_ctx.canvas_size.height,
+    );
     let dt = (
         let new_t = time.now();
         let dt = new_t - t;
         t = new_t;
         dt
     );
-    next_enemy -= dt;
-    while next_enemy < 0 do (
+    while camera.pos.0 > next_enemy do (
         spawn_enemy();
-        next_enemy += ENEMY_SPAWN_TIME;
+        next_enemy = camera.pos.0 + std.random.gen_range(ENEMY_SPAWN_DISTANCE);
     );
     while Treap.length(&enemies) != 0 do (
         let first = Treap.at(&enemies, 0);
-        if first^.pos.1 > FOV then (
+        if first^.pos.0 < camera.pos.0 - FOV then (
             _, enemies = Treap.split_at(enemies, 1);
         ) else break;
     );
     if player is :Some(ref mut player) then (
-        player^.vel = (0, 0);
-        if input.is_key_pressed(:ArrowLeft) then (
-            player^.vel.0 -= 1;
+        player^.vel.0 = min(player^.vel.0 + PLAYER_ACCEL * dt, PLAYER_SPEED);
+        let up = (
+            input.is_key_pressed(:Space)
+            or input.is_key_pressed(:ArrowUp)
         );
-        if input.is_key_pressed(:ArrowRight) then (
-            player^.vel.0 += 1;
+        player^.vel.1 = clamp(
+            player^.vel.1 + (if up then +1 else -1) * PLAYER_ACCEL * dt,
+            .min = -PLAYER_MAX_VERTICAL_SPEED,
+            .max = +PLAYER_MAX_VERTICAL_SPEED,
         );
-        if input.is_key_pressed(:ArrowUp) then (
-            player^.vel.1 += 1;
+        if up and player^.on_ground then (
+            player^.vel.1 = JUMP_SPEED;
         );
-        if input.is_key_pressed(:ArrowDown) then (
-            player^.vel.1 -= 1;
-        );
-        player^.vel = Vec2.mul(player^.vel, PLAYER_SPEED);
         player |> Unit.update(dt);
-        camera.pos = player^.pos;
+        if player^.pos.1 < GROUND + player^.half_size.1 then (
+            player^.vel.1 = 0;
+            player^.pos.1 = GROUND + player^.half_size.1;
+            player^.on_ground = true;
+        ) else (
+            player^.on_ground = false;
+        );
+        if player^.pos.1 > MAX_HEIGHT - player^.half_size.1 then (
+            player^.vel.1 = 0;
+            player^.pos.1 = MAX_HEIGHT - player^.half_size.1;
+        );
+        let half_screen = 0.5 * FOV * framebuffer_size.0 / framebuffer_size.1;
+        camera.pos.0 = (
+            player^.pos.0
+            + half_screen
+            - min(PLAYER_OFFSET, half_screen)
+        );
     );
     for enemy in Treap.iter_mut(&mut enemies) do (
         enemy |> Unit.update(dt);
@@ -123,17 +190,15 @@ loop (
         );
     );
     
-    ugli.clear(BACKGROUND_COLOR);
-    
-    let aspect = geng_ctx.canvas_size.width / geng_ctx.canvas_size.height;
-    
     with geng.CameraCtx = geng.CameraUniforms.init(
         camera,
-        .framebuffer_size = (
-            geng_ctx.canvas_size.width,
-            geng_ctx.canvas_size.height,
-        ),
+        .framebuffer_size,
     );
+    
+    ugli.clear(BACKGROUND_COLOR);
+    draw_grass();
+    
+    let aspect = geng_ctx.canvas_size.width / geng_ctx.canvas_size.height;
     
     for enemy in Treap.iter(&enemies) do (
         enemy |> Unit.draw;

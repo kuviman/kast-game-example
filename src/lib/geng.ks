@@ -37,11 +37,11 @@ const init = () -> (.geng :: ContextT, .gl :: gl.ContextT) => (
         .program = (
             let vertex_shader = ugli.compile_shader(
                 gl.VERTEX_SHADER,
-                fetch_string("vertex.glsl")
+                fetch_string("shaders/quad/vertex.glsl")
             );
             let fragment_shader = ugli.compile_shader(
                 gl.FRAGMENT_SHADER,
-                fetch_string("fragment.glsl")
+                fetch_string("shaders/quad/fragment.glsl")
             );
             ugli.Program.init(vertex_shader, fragment_shader)
         ),

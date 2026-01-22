@@ -49,7 +49,11 @@ Runtime.is_key_pressed = (key) => {
 
 Runtime.fetch_string = async (path) => {
   const response = await fetch(path);
-  return await response.text();
+  if (response.status == 200) {
+    return await response.text();
+  } else {
+    throw new Error(response.statusText);
+  }
 };
 
 window.Runtime = Runtime;

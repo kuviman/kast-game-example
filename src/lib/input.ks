@@ -5,6 +5,7 @@ const Key = newtype (
     | :ArrowRight
     | :ArrowUp
     | :ArrowDown
+    | :Space
 );
 
 const is_key_pressed = (key :: Key) -> Bool => (
