@@ -92,8 +92,8 @@ let mut enemies = Treap.create();
 let spawn_enemy = () => (
     let x = camera.pos.0 + FOV;
     let y = std.random.gen_range(
-        .min = -FOV / 2,
-        .max = +FOV / 2,
+        .min = GROUND + ENEMY_RADIUS,
+        .max = MAX_HEIGHT - ENEMY_RADIUS,
     );
     let enemy = (
         .pos = (x, y),
