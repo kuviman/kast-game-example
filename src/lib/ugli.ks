@@ -127,6 +127,7 @@ impl Texture as module = (
         let handle = gl.create_texture();
         gl.bind_texture(gl.TEXTURE_2D, handle);
         gl.pixel_store_bool(gl.UNPACK_FLIP_Y_WEBGL, true);
+        gl.pixel_store_bool(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, true);
         match filter with (
             | :Linear => ()
             | :Nearest => (
@@ -146,6 +147,16 @@ impl Texture as module = (
             image |> js.into_any
         );
         gl.generate_mipmap(gl.TEXTURE_2D);
+        gl.tex_parameter_i(
+            gl.TEXTURE_2D,
+            gl.TEXTURE_WRAP_S,
+            gl.CLAMP_TO_EDGE,
+        );
+        gl.tex_parameter_i(
+            gl.TEXTURE_2D,
+            gl.TEXTURE_WRAP_T,
+            gl.CLAMP_TO_EDGE,
+        );
         (.handle)
     );
 );
@@ -220,7 +231,19 @@ impl DrawState as module = (
     module:
     
     const init = () -> DrawState => (
-        .active_texture_index = 0,
+        let ctx = (@current gl.Context);
+        
+        gl.enable(gl.BLEND);
+        gl.blend_func_separate(
+            gl.SRC_ALPHA,
+            gl.ONE_MINUS_SRC_ALPHA,
+            gl.ONE_MINUS_DST_ALPHA,
+            gl.ONE,
+        );
+        
+        (
+            .active_texture_index = 0,
+        )
     );
 );
 
