@@ -11,25 +11,16 @@ const ENEMY_SPEED = 0.3;
 const PLAYER_SPEED = 3;
 const PLAYER_RADIUS = 0.3;
 const ENEMY_RADIUS = 0.3;
+const FOV = 10;
 
 let textures = (
     .player = ugli.Texture.init(load_image("unicorn.png"), :Nearest),
-    .enemy = ugli.Texture.init(load_image("enemy.png"), :Nearest)
+    .enemy = ugli.Texture.init(load_image("stopsign.png"), :Nearest)
 );
-
-with geng.Camera = (
-    .projection_matrix = (
-        (1, 0, 0),
-        (0, 1, 0),
-        (0, 0, 1),
-    ),
-);
-
-let fov = 10;
 
 const Unit = newtype (
     .pos :: Vec2,
-    .radius :: Float32,
+    .half_size :: Vec2,
     .vel :: Vec2,
     .texture :: ugli.Texture,
 );
@@ -44,20 +35,20 @@ impl Unit as module = (
     const draw = (unit :: &Unit) => (
         geng.draw_quad(
             .pos = unit^.pos,
-            .radius = unit^.radius,
+            .half_size = unit^.half_size,
             .texture = unit^.texture,
         );
     );
 );
 
 let check_collision = (a :: &Unit, b :: &Unit) -> Bool => (
-    abs(a^.pos.0 - b^.pos.0) < a^.radius + b^.radius
-    and abs(a^.pos.1 - b^.pos.1) < a^.radius + b^.radius
+    abs(a^.pos.0 - b^.pos.0) < a^.half_size.0 + b^.half_size.0
+    and abs(a^.pos.1 - b^.pos.1) < a^.half_size.1 + b^.half_size.1
 );
 
 let mut player :: Option.t[Unit] = :Some(
     .pos = (0, 0),
-    .radius = PLAYER_RADIUS,
+    .half_size = (PLAYER_RADIUS, PLAYER_RADIUS),
     .vel = (0, 0),
     .texture = textures.player,
 );
@@ -66,12 +57,12 @@ use std.collections.Treap;
 
 let mut enemies = Treap.create();
 let spawn_enemy = () => (
-    let edge = fov / 2;
+    let edge = FOV / 2;
     let start_pos = (std.random.gen_range(.min = -edge, .max = +edge), -edge);
     let end_pos = (std.random.gen_range(.min = -edge, .max = +edge), +edge);
     let enemy = (
         .pos = start_pos,
-        .radius = ENEMY_RADIUS,
+        .half_size = (ENEMY_RADIUS, ENEMY_RADIUS * 2),
         .vel = Vec2.mul(Vec2.sub(end_pos, start_pos), ENEMY_SPEED),
         .texture = textures.enemy,
     );
@@ -81,6 +72,11 @@ let spawn_enemy = () => (
 let start_time = time.now();
 let mut t = time.now();
 let mut next_enemy = ENEMY_SPAWN_TIME;
+
+let mut camera :: geng.Camera = (
+    .pos = (0, 0),
+    .fov = FOV,
+);
 
 loop (
     let dt = (
@@ -96,7 +92,7 @@ loop (
     );
     while Treap.length(&enemies) != 0 do (
         let first = Treap.at(&enemies, 0);
-        if first^.pos.1 > fov then (
+        if first^.pos.1 > FOV then (
             _, enemies = Treap.split_at(enemies, 1);
         ) else break;
     );
@@ -116,6 +112,7 @@ loop (
         );
         player^.vel = Vec2.mul(player^.vel, PLAYER_SPEED);
         player |> Unit.update(dt);
+        camera.pos = player^.pos;
     );
     for enemy in Treap.iter_mut(&mut enemies) do (
         enemy |> Unit.update(dt);
@@ -129,10 +126,13 @@ loop (
     ugli.clear(BACKGROUND_COLOR);
     
     let aspect = geng_ctx.canvas_size.width / geng_ctx.canvas_size.height;
-    (@current geng.Camera).projection_matrix = (
-        (2 / aspect / fov, 0, 0),
-        (0, 2 / fov, 0),
-        (0, 0, 1),
+    
+    with geng.CameraCtx = geng.CameraUniforms.init(
+        camera,
+        .framebuffer_size = (
+            geng_ctx.canvas_size.width,
+            geng_ctx.canvas_size.height,
+        ),
     );
     
     for enemy in Treap.iter(&enemies) do (

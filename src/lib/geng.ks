@@ -99,17 +99,50 @@ const canvas_size = () => (
     (@current Context).canvas_size
 );
 
-const Camera = @context newtype (
+const Camera = newtype (
+    .pos :: Vec2,
+    .fov :: Float32,
+);
+
+const CameraUniforms = newtype (
+    .view_matrix :: Mat3,
     .projection_matrix :: Mat3,
+);
+
+const CameraCtx = @context CameraUniforms;
+
+impl CameraUniforms as module = (
+    module:
+    
+    const init = (
+        camera :: Camera,
+        .framebuffer_size :: Vec2,
+    ) -> CameraUniforms => (
+        let view_matrix = (
+            (1, 0, -camera.pos.0),
+            (0, 1, -camera.pos.1),
+            (0, 0, 1),
+        );
+        let aspect = framebuffer_size.0 / framebuffer_size.1;
+        let projection_matrix = (
+            (2 / aspect / camera.fov, 0, 0),
+            (0, 2 / camera.fov, 0),
+            (0, 0, 1),
+        );
+        (
+            .view_matrix,
+            .projection_matrix,
+        )
+    );
 );
 
 const draw_quad = (
     .pos :: Vec2,
-    .radius :: Float32,
+    .half_size :: Vec2,
     .texture :: ugli.Texture,
 ) => (
     let ctx = (@current Context);
-    let camera = (@current Camera);
+    let camera = (@current CameraCtx);
     let program = ctx.quad.program;
     program |> ugli.Program.@"use";
     
@@ -117,7 +150,8 @@ const draw_quad = (
     let draw_state = &mut draw_state;
     
     program |> ugli.set_uniform("u_pos", pos, draw_state);
-    program |> ugli.set_uniform("u_radius", radius, draw_state);
+    program |> ugli.set_uniform("u_half_size", half_size, draw_state);
+    program |> ugli.set_uniform("u_view_matrix", camera.view_matrix, draw_state);
     program |> ugli.set_uniform("u_projection_matrix", camera.projection_matrix, draw_state);
     program |> ugli.set_uniform("u_texture", texture, draw_state);
     program |> ugli.set_vertex_data_source(ctx.quad.buffer);

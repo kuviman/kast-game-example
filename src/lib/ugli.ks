@@ -281,15 +281,15 @@ impl Mat3 as Uniform = (
     .set = (location, value, state) => (
         let ctx = (@current gl.Context);
         let list = js.List.init();
-        let add = (x, y, z) => (
-            list |> js.List.push(x);
-            list |> js.List.push(y);
-            list |> js.List.push(z);
-        );
         let (a, b, c) = value;
-        add(a);
-        add(b);
-        add(c);
+        let add = (f) => (
+            list |> js.List.push(f(a));
+            list |> js.List.push(f(b));
+            list |> js.List.push(f(c));
+        );
+        add(row => row.0);
+        add(row => row.1);
+        add(row => row.2);
         let data = (@native "list=>new Float32Array(list)")(list);
         (@native "({ctx,location,data})=>ctx.uniformMatrix3fv(location,false,data)")(
             .ctx,
