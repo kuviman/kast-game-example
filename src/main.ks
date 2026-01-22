@@ -5,7 +5,7 @@ let (.geng = geng_ctx, .gl = gl_ctx) = geng.init();
 with geng.Context = geng_ctx;
 with gl.Context = gl_ctx;
 
-const BACKGROUND_COLOR = (0.8, 0.8, 1.0, 1.0);
+const BACKGROUND_COLOR = (0, 0, 0.1, 1);
 const ENEMY_SPAWN_TIME = 1;
 const ENEMY_SPEED = 0.3;
 const PLAYER_SPEED = 3;
@@ -13,7 +13,7 @@ const PLAYER_RADIUS = 0.3;
 const ENEMY_RADIUS = 0.3;
 
 let textures = (
-    .player = ugli.Texture.init(load_image("player.png"), :Nearest),
+    .player = ugli.Texture.init(load_image("unicorn.png"), :Nearest),
     .enemy = ugli.Texture.init(load_image("enemy.png"), :Nearest)
 );
 
