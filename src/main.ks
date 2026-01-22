@@ -127,6 +127,11 @@ let draw_grass = () => (
     gl.draw_arrays(gl.TRIANGLE_FAN, 0, 4);
 );
 
+with audio.Context = audio.init();
+let sfx = (
+    .jump = audio.load("sfx/jump.wav"),
+);
+
 loop (
     let framebuffer_size = (
         geng_ctx.canvas_size.width,
@@ -161,6 +166,7 @@ loop (
         );
         if up and player^.on_ground then (
             player^.vel.1 = JUMP_SPEED;
+            audio.play(sfx.jump);
         );
         player |> Unit.update(dt);
         if player^.pos.1 < GROUND + player^.half_size.1 then (

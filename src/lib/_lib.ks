@@ -5,6 +5,7 @@ const gl = include "./gl/gl.ks";
 const ugli = include "./ugli.ks";
 const obj = include "./obj.ks";
 const input = include "./input.ks";
+const audio = include "./audio.ks";
 
 include "./common.ks";
 

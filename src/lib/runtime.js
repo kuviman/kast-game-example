@@ -56,4 +56,28 @@ Runtime.fetch_string = async (path) => {
   }
 };
 
+Runtime.audio = {
+  init: async () => {
+    const audio = new AudioContext();
+    const master = audio.createGain();
+    master.gain.value = 0.1; // TODO
+    master.connect(audio.destination);
+    return { audio, master };
+  },
+  load: async ({ ctx, path }) => {
+    const response = await fetch(path);
+    if (response.status != 200) {
+      throw new Error(response.statusText);
+    }
+    return await ctx.audio.decodeAudioData(await response.arrayBuffer());
+  },
+  play: async ({ ctx, buffer }) => {
+    const audio = ctx.audio;
+    const source = audio.createBufferSource();
+    source.buffer = buffer;
+    source.connect(ctx.master);
+    source.start();
+  },
+};
+
 window.Runtime = Runtime;
