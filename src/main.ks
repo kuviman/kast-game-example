@@ -33,13 +33,15 @@ let textures = (
         texture
     ),
     .play = load_texture("play.png"),
+    .star = load_texture("star.png"),
 );
 
 const PLAYER_OFFSET = 2;
 const BACKGROUND_COLOR = (0, 0, 0.1, 1);
 const ENEMY_SPAWN_TIME = 1;
 const ENEMY_SPEED = 0.3;
-const ENEMY_SPAWN_DISTANCE = (.min = 3, .max = 7);
+const SPAWN_DISTANCE = (.min = 3, .max = 7);
+const STAR_CHANCE = 0.5;
 const PLAYER_SPEED = 3;
 const PLAYER_MAX_VERTICAL_SPEED = 5;
 const JUMP_SPEED = 10;
@@ -52,7 +54,7 @@ const GRAVITY = 10;
 const GROUND = 0;
 const MAX_HEIGHT = 3;
 
-const Unit = newtype (
+const Entity = newtype (
     .pos :: Vec2,
     .half_size :: Vec2,
     .vel :: Vec2,
@@ -60,23 +62,23 @@ const Unit = newtype (
     .on_ground :: Bool,
 );
 
-impl Unit as module = (
+impl Entity as module = (
     module:
     
-    const update = (unit :: &mut Unit, dt :: Float64) => (
-        unit^.pos = Vec2.add(unit^.pos, Vec2.mul(unit^.vel, dt));
+    const update = (entity :: &mut Entity, dt :: Float64) => (
+        entity^.pos = Vec2.add(entity^.pos, Vec2.mul(entity^.vel, dt));
     );
     
-    const draw = (unit :: &Unit) => (
+    const draw = (entity :: &Entity) => (
         geng.draw_quad(
-            .pos = unit^.pos,
-            .half_size = unit^.half_size,
-            .texture = unit^.texture,
+            .pos = entity^.pos,
+            .half_size = entity^.half_size,
+            .texture = entity^.texture,
         );
     );
 );
 
-let check_collision = (a :: &Unit, b :: &Unit) -> Bool => (
+let check_collision = (a :: &Entity, b :: &Entity) -> Bool => (
     abs(a^.pos.0 - b^.pos.0) < a^.half_size.0 + b^.half_size.0
     and abs(a^.pos.1 - b^.pos.1) < a^.half_size.1 + b^.half_size.1
 );
@@ -84,10 +86,11 @@ let check_collision = (a :: &Unit, b :: &Unit) -> Bool => (
 use std.collections.Treap;
 
 const State = newtype (
-    .player :: Option.t[Unit],
-    .enemies :: Treap.t[Unit],
+    .player :: Option.t[Entity],
+    .enemies :: Treap.t[Entity],
+    .stars :: Treap.t[Entity],
     .camera :: geng.Camera,
-    .next_enemy :: Float32,
+    .next_spawn :: Float32,
 );
 
 # const StateCtx = @context State;
@@ -101,7 +104,8 @@ impl State as module = (
             .pos = (0, (GROUND + MAX_HEIGHT) / 2),
             .fov = FOV,
         ),
-        .next_enemy = 0,
+        .stars = Treap.create(),
+        .next_spawn = 0,
     );
     
     const restart = (state :: &mut State) => (
@@ -117,20 +121,27 @@ impl State as module = (
         );
     );
     
-    const spawn_enemy = (state :: &mut State) => (
+    const spawn = (state :: &mut State) => (
         let x = state^.camera.pos.0 + FOV;
         let y = std.random.gen_range(
             .min = GROUND + ENEMY_RADIUS,
             .max = MAX_HEIGHT - ENEMY_RADIUS,
         );
-        let enemy = (
+        let is_enemy = std.random.gen_range[Float32](.min = 0, .max = 1) < STAR_CHANCE;
+        let texture = if is_enemy then textures.enemy else textures.star;
+        let entity = (
             .pos = (x, y),
             .half_size = (ENEMY_RADIUS, ENEMY_RADIUS),
             .vel = (0, 0),
-            .texture = textures.enemy,
+            .texture,
             .on_ground = true,
         );
-        state^.enemies = Treap.join(state^.enemies, Treap.singleton(enemy));
+        let collection = if is_enemy then (
+            &mut state^.enemies
+        ) else (
+            &mut state^.stars
+        );
+        collection^ = Treap.join(collection^, Treap.singleton(entity));
     );
     
     const handle_event = (state :: &mut State, event :: input.Event) => (
@@ -149,19 +160,23 @@ impl State as module = (
             geng_ctx.canvas_size.width,
             geng_ctx.canvas_size.height,
         );
-        while state^.camera.pos.0 > state^.next_enemy do (
-            state |> spawn_enemy;
-            state^.next_enemy = (
+        while state^.camera.pos.0 > state^.next_spawn do (
+            state |> spawn;
+            state^.next_spawn = (
                 state^.camera.pos.0
-                + std.random.gen_range(ENEMY_SPAWN_DISTANCE)
+                + std.random.gen_range(SPAWN_DISTANCE)
             );
         );
-        while Treap.length(&state^.enemies) != 0 do (
-            let first = Treap.at(&state^.enemies, 0);
-            if first^.pos.0 < state^.camera.pos.0 - FOV then (
-                _, state^.enemies = Treap.split_at(state^.enemies, 1);
-            ) else break;
+        let despawn = collection => (
+            while Treap.length(&collection^) != 0 do (
+                let first = Treap.at(&collection^, 0);
+                if first^.pos.0 < state^.camera.pos.0 - FOV then (
+                    _, collection^ = Treap.split_at(collection^, 1);
+                ) else break;
+            );
         );
+        despawn(&mut state^.enemies);
+        despawn(&mut state^.stars);
         if state^.player is :Some(ref mut player) then (
             player^.vel.0 = min(player^.vel.0 + PLAYER_ACCEL * dt, PLAYER_SPEED);
             let up = (
@@ -178,7 +193,7 @@ impl State as module = (
                 player^.vel.1 = JUMP_SPEED;
                 audio.play(sfx.jump);
             );
-            player |> Unit.update(dt);
+            player |> Entity.update(dt);
             if player^.pos.1 < GROUND + player^.half_size.1 then (
                 player^.vel.1 = 0;
                 player^.pos.1 = GROUND + player^.half_size.1;
@@ -197,14 +212,42 @@ impl State as module = (
                 - min(PLAYER_OFFSET, half_screen)
             );
         );
-        for enemy in Treap.iter_mut(&mut state^.enemies) do (
-            enemy |> Unit.update(dt);
-            if state^.player is :Some(ref player_unit) then (
-                if check_collision(&enemy^, player_unit) then (
-                    state^.player = :None;
+        let update_collection = (collection, entity_type) => (
+            let mut to_despawn = List.create();
+            for (i, entity) in Treap.iter_mut(collection) |> std.iter.enumerate do (
+                entity |> Entity.update(dt);
+                if state^.player is :Some(ref player_entity) then (
+                    if check_collision(&entity^, player_entity) then (
+                        match entity_type with (
+                            | :Enemy => (
+                                state^.player = :None;
+                            )
+                            | :Star => (
+                                List.push_back(&mut to_despawn, i);
+                            )
+                        );
+                    );
                 );
             );
+            const pop_back = [T] (a :: &mut List.t[T]) -> Option.t[T] => (
+                let length = Treap.length(&a^.inner);
+                if length == 0 then :None else (
+                    a^.inner, (let node) = Treap.split_at(a^.inner, Treap.length(&a^.inner) - 1);
+                    let :Node(data) = node;
+                    :Some(data.value)
+                )
+            );
+            
+            loop (
+                if pop_back(&mut to_despawn) is :Some(i) then (
+                    let before, i_and_after = Treap.split_at(collection^, i);
+                    let _, after = Treap.split_at(i_and_after, 1);
+                    collection^ = Treap.join(before, after);
+                ) else break;
+            );
         );
+        update_collection(&mut state^.enemies, :Enemy);
+        update_collection(&mut state^.stars, :Star);
     );
     
     const draw = (state :: &State) => (
@@ -219,11 +262,14 @@ impl State as module = (
         
         ugli.clear(BACKGROUND_COLOR);
         draw_grass();
-        for enemy in Treap.iter(&state^.enemies) do (
-            enemy |> Unit.draw;
+        for entity in Treap.iter(&state^.enemies) do (
+            entity |> Entity.draw;
         );
-        if state^.player is :Some(ref player) then (
-            player |> Unit.draw;
+        for entity in Treap.iter(&state^.stars) do (
+            entity |> Entity.draw;
+        );
+        if state^.player is :Some(ref entity) then (
+            entity |> Entity.draw;
         ) else (
             geng.draw_quad(
                 .pos = state^.camera.pos,
