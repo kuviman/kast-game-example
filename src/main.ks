@@ -6,6 +6,14 @@ with geng.Context = geng_ctx;
 with gl.Context = gl_ctx;
 with input.Context = input.init();
 with audio.Context = audio.init();
+let music = audio.load("music.wav");
+audio.play_with(
+    music,
+    (
+        .@"loop" = true,
+        .gain = 2,
+    ),
+);
 let sfx = (
     .jump = audio.load("sfx/jump.wav"),
     .hit = audio.load("sfx/hit.wav"),

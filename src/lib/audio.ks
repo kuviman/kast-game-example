@@ -8,14 +8,32 @@ const init = () -> ContextT => (
     (@native "Runtime.audio.init")()
 );
 
-const load = (path) -> AudioBuffer => (
+const load = (path) -> Buffer => (
     let ctx = (@current Context);
     (@native "Runtime.audio.load")(.ctx, .path)
 );
 
-const play = (buffer :: AudioBuffer) -> () => (
-    let ctx = (@current Context);
-    (@native "Runtime.audio.play")(.ctx, .buffer)
+const PlayOptions = newtype (
+    .@"loop" :: Bool,
+    .gain :: Float64,
 );
 
-const AudioBuffer = @opaque_type;
+impl PlayOptions as module = (
+    module:
+    
+    const default = () -> PlayOptions => (
+        .@"loop" = false,
+        .gain = 1,
+    );
+);
+
+const play_with = (buffer :: Buffer, options :: PlayOptions) -> () => (
+    let ctx = (@current Context);
+    (@native "Runtime.audio.play")(.ctx, .buffer, .options)
+);
+
+const play = (buffer :: Buffer) => (
+    play_with(buffer, PlayOptions.default())
+);
+
+const Buffer = @opaque_type;

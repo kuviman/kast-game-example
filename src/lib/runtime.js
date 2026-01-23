@@ -88,11 +88,14 @@ Runtime.audio = {
     }
     return await ctx.audio.decodeAudioData(await response.arrayBuffer());
   },
-  play: async ({ ctx, buffer }) => {
+  play: async ({ ctx, buffer, options }) => {
     const audio = ctx.audio;
     const source = audio.createBufferSource();
+    const gain = audio.createGain();
+    gain.gain.value = options.gain;
     source.buffer = buffer;
-    source.connect(ctx.master);
+    source.loop = options.loop;
+    source.connect(gain).connect(ctx.master);
     source.start();
   },
 };
