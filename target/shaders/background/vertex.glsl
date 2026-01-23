@@ -7,8 +7,10 @@ varying vec2 v_uv;
 uniform mat3 u_view_matrix;
 uniform mat3 u_projection_matrix;
 
-uniform float u_ground;
+uniform float u_level;
+uniform float u_top;
 uniform vec2 u_texture_size_in_world_coords;
+uniform float u_texture_offset;
 
 mat3 inverse(mat3 m) {
   float a00 = m[0][0], a01 = m[0][1], a02 = m[0][2];
@@ -29,21 +31,30 @@ mat3 inverse(mat3 m) {
 void main() {
     // mat * (-1, .., 1) = (-1, .., 1);
     // mat * (1, .., 1) = (1, .., 1);
-    // mat * (.., -1, 1) = (.., -1, 1);
-    // mat * (.., 1, 1) = (.., top, 1);
-    float top = u_ground + u_texture_size_in_world_coords.y * 0.7;
-    float top_screen_pos = (
+    // mat * (.., -1, 1) = (.., botton_screen, 1);
+    // mat * (.., 1, 1) = (.., top_screen, 1);
+    float top_level = u_level + u_texture_size_in_world_coords.y * u_texture_offset;
+    float bottom_level = u_level - u_texture_size_in_world_coords.y * u_texture_offset;
+    float top_screen = u_top + (1.0 - u_top) * (
         u_projection_matrix * u_view_matrix 
-        * vec3(0.0, top, 1.0)
+        * vec3(0.0, top_level, 1.0)
+    ).y;
+    float bottom_screen = (1.0 - u_top) * (-1.0) + u_top * (
+        u_projection_matrix * u_view_matrix 
+        * vec3(0.0, bottom_level, 1.0)
     ).y;
     float k = a_pos.y * 0.5 + 0.5;
     vec2 screen_pos = vec2(
         a_pos.x,
-        top_screen_pos * k + (1.0 - k) * (-1.0));
+        top_screen * k + bottom_screen * (1.0 - k));
     vec3 world_pos = inverse(u_projection_matrix * u_view_matrix)
         * vec3(screen_pos, 1.0);
-    v_uv = vec2(world_pos.x, world_pos.y - top)
-        / u_texture_size_in_world_coords
-        + vec2(0.0, 1.0);
+    float uv_y_top = (world_pos.y - bottom_level)
+        / u_texture_size_in_world_coords.y;
+    float uv_y_bottom = (world_pos.y - top_level)
+        / u_texture_size_in_world_coords.y + 1.0;
+    v_uv = vec2(
+        world_pos.x / u_texture_size_in_world_coords.x,
+        u_top * uv_y_top + (1.0 - u_top) * uv_y_bottom);
     gl_Position = vec4(screen_pos, 0.0, 1.0);
 }

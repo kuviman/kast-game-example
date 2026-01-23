@@ -60,4 +60,7 @@ const document = () -> HtmlDocumentElement => (
 
 const WebGLRenderingContext = @opaque_type;
 
-const HtmlImageElement = @opaque_type;
+const HtmlImageElement = newtype (
+    .naturalWidth :: Float32,
+    .naturalHeight :: Float32,
+);

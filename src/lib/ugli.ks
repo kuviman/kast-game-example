@@ -109,6 +109,7 @@ impl Program as module = (
 );
 
 const Texture = newtype (
+    .size :: Vec2,
     .handle :: gl.WebGLTexture,
 );
 
@@ -173,7 +174,10 @@ impl Texture as module = (
             gl.TEXTURE_WRAP_T,
             gl.CLAMP_TO_EDGE,
         );
-        (.handle)
+        (
+            .size = (image.naturalWidth, image.naturalHeight),
+            .handle,
+        )
     );
     
     const set_wrap_separate = (

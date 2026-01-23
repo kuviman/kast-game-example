@@ -12,28 +12,35 @@ let sfx = (
     .pickup_star = audio.load("sfx/pickup_star.wav"),
 );
 
-let grass_program = (
+let load_shader = name => (
     let vertex_shader = ugli.compile_shader(
         gl.VERTEX_SHADER,
-        fetch_string("shaders/grass/vertex.glsl")
+        fetch_string("shaders/" + name + "/vertex.glsl")
     );
     let fragment_shader = ugli.compile_shader(
         gl.FRAGMENT_SHADER,
-        fetch_string("shaders/grass/fragment.glsl")
+        fetch_string("shaders/" + name + "/fragment.glsl")
     );
     ugli.Program.init(vertex_shader, fragment_shader)
 );
 
+let shaders = (
+    .background = load_shader("background"),
+);
+
 let load_texture = path => ugli.Texture.init(load_image(path), :Nearest);
+
+let load_background_texture = path => (
+    let mut texture = load_texture(path);
+    &mut texture |> ugli.Texture.set_wrap_separate(:Repeat, :ClampToEdge);
+    texture
+);
 
 let textures = (
     .player = load_texture("unicorn.png"),
     .enemy = load_texture("angry.png"),
-    .grass = (
-        let mut texture = load_texture("grass.png");
-        &mut texture |> ugli.Texture.set_wrap_separate(:Repeat, :ClampToEdge);
-        texture
-    ),
+    .grass = load_background_texture("grass.png"),
+    .clouds = load_background_texture("clouds.png"),
     .play = load_texture("play.png"),
     .star = load_texture("star.png"),
 );
@@ -266,6 +273,7 @@ impl State as module = (
         
         ugli.clear(BACKGROUND_COLOR);
         draw_grass();
+        draw_clouds();
         for entity in Treap.iter(&state^.enemies) do (
             entity |> Entity.draw;
         );
@@ -283,22 +291,48 @@ impl State as module = (
         );
     );
     
-    const draw_grass = () => (
+    const draw_background = (
+        .level :: Float32,
+        .top :: Bool,
+        .texture :: ugli.Texture,
+        .texture_offset :: Float32,
+    ) => (
         let camera = (@current geng.CameraCtx);
         let geng = (@current geng.Context);
-        let program = grass_program;
+        let program = shaders.background;
         program |> ugli.Program.@"use";
         
         let mut draw_state = ugli.DrawState.init();
         let draw_state = &mut draw_state;
         
-        program |> ugli.set_uniform("u_ground", GROUND, draw_state);
+        program |> ugli.set_uniform("u_level", level, draw_state);
+        let top :: Float32 = if top then 1 else 0;
+        program |> ugli.set_uniform("u_top", top, draw_state);
+        program |> ugli.set_uniform("u_texture_offset", texture_offset, draw_state);
         program |> ugli.set_uniform("u_view_matrix", camera.view_matrix, draw_state);
         program |> ugli.set_uniform("u_projection_matrix", camera.projection_matrix, draw_state);
-        program |> ugli.set_uniform("u_texture", textures.grass, draw_state);
-        program |> ugli.set_uniform("u_texture_size_in_world_coords", Vec2.mul((32, 8), 2 * 0.3 / 16), draw_state);
+        program |> ugli.set_uniform("u_texture", texture, draw_state);
+        program |> ugli.set_uniform("u_texture_size_in_world_coords", Vec2.mul(texture.size, 2 * 0.3 / 16), draw_state);
         program |> ugli.set_vertex_data_source(geng.quad.buffer);
         gl.draw_arrays(gl.TRIANGLE_FAN, 0, 4);
+    );
+    
+    const draw_grass = () => (
+        draw_background(
+            .level = GROUND,
+            .top = false,
+            .texture = textures.grass,
+            .texture_offset = 0.7,
+        );
+    );
+    
+    const draw_clouds = () => (
+        draw_background(
+            .level = MAX_HEIGHT,
+            .top = true,
+            .texture = textures.clouds,
+            .texture_offset = 0.25,
+        );
     );
 );
 
