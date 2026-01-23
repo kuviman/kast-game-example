@@ -98,3 +98,7 @@ const iter_events = () -> std.iter.Iterable[Event] => (
         ),
     )
 );
+
+const is_any_pointer_pressed = () -> Bool => (
+    (@native "Runtime.input.is_any_pointer_pressed")()
+);

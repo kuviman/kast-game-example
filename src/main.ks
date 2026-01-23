@@ -199,7 +199,7 @@ impl State as module = (
             let up = (
                 input.Key.is_pressed(:Space)
                 or input.Key.is_pressed(:ArrowUp)
-                or input.MouseButton.is_pressed(:Left)
+                or input.is_any_pointer_pressed()
             );
             player^.vel.1 = clamp(
                 player^.vel.1 + (if up then +1 else -1) * PLAYER_ACCEL * dt,

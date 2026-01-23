@@ -38,6 +38,8 @@ Runtime.input = {};
   const pressed_keys = {};
   const pressed_mouse_buttons = {};
 
+  const pointers = {};
+
   Runtime.input.init = async ({ mouse_press }) => {
     window.addEventListener("keydown", (e) => {
       pressed_keys[e.code] = true;
@@ -52,6 +54,22 @@ Runtime.input = {};
     window.addEventListener("mouseup", (e) => {
       pressed_mouse_buttons[e.button] = false;
     });
+    window.addEventListener("touchstart", (e) => {
+      e.touches;
+    });
+    window.addEventListener("pointerdown", (e) => {
+      pointers[e.pointerId] = {
+        down: true,
+      };
+    });
+    window.addEventListener("pointerup", (e) => {
+      pointers[e.pointerId] = {
+        down: false,
+      };
+    });
+    window.addEventListener("pointercancel", (e) => {
+      delete pointers[e.pointerId];
+    });
   };
 
   Runtime.input.is_key_pressed = (key) => {
@@ -61,6 +79,15 @@ Runtime.input = {};
 
   Runtime.input.is_mouse_button_pressed = (button) => {
     return pressed_mouse_buttons[button] === true;
+  };
+
+  Runtime.input.is_any_pointer_pressed = () => {
+    for (const pointer of Object.values(pointers)) {
+      if (pointer.down) {
+        return true;
+      }
+    }
+    return false;
   };
 }
 
