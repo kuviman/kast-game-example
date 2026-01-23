@@ -6,7 +6,7 @@ with geng.Context = geng_ctx;
 with gl.Context = gl_ctx;
 with input.Context = input.init();
 with audio.Context = audio.init();
-let music = audio.load("music.wav");
+let music = audio.load("assets/music.wav");
 audio.play_with(
     music,
     (
@@ -15,19 +15,19 @@ audio.play_with(
     ),
 );
 let sfx = (
-    .jump = audio.load("sfx/jump.wav"),
-    .hit = audio.load("sfx/hit.wav"),
-    .pickup_star = audio.load("sfx/pickup_star.wav"),
+    .jump = audio.load("assets/sfx/jump.wav"),
+    .hit = audio.load("assets/sfx/hit.wav"),
+    .pickup_star = audio.load("assets/sfx/pickup_star.wav"),
 );
 
 let load_shader = name => (
     let vertex_shader = ugli.compile_shader(
         gl.VERTEX_SHADER,
-        fetch_string("shaders/" + name + "/vertex.glsl")
+        fetch_string("assets/shaders/" + name + "/vertex.glsl")
     );
     let fragment_shader = ugli.compile_shader(
         gl.FRAGMENT_SHADER,
-        fetch_string("shaders/" + name + "/fragment.glsl")
+        fetch_string("assets/shaders/" + name + "/fragment.glsl")
     );
     ugli.Program.init(vertex_shader, fragment_shader)
 );
@@ -36,7 +36,7 @@ let shaders = (
     .background = load_shader("background"),
 );
 
-let load_texture = path => ugli.Texture.init(load_image(path), :Nearest);
+let load_texture = path => ugli.Texture.init(load_image("assets/textures/" + path), :Nearest);
 
 let load_background_texture = path => (
     let mut texture = load_texture(path);
