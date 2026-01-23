@@ -8,6 +8,8 @@ with input.Context = input.init();
 with audio.Context = audio.init();
 let sfx = (
     .jump = audio.load("sfx/jump.wav"),
+    .hit = audio.load("sfx/hit.wav"),
+    .pickup_star = audio.load("sfx/pickup_star.wav"),
 );
 
 let grass_program = (
@@ -221,9 +223,11 @@ impl State as module = (
                         match entity_type with (
                             | :Enemy => (
                                 state^.player = :None;
+                                audio.play(sfx.hit);
                             )
                             | :Star => (
                                 List.push_back(&mut to_despawn, i);
+                                audio.play(sfx.pickup_star);
                             )
                         );
                     );
