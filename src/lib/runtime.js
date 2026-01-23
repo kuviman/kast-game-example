@@ -33,19 +33,36 @@ Runtime.load_image = (url) => {
   });
 };
 
-const pressed_keys = {};
-window.addEventListener("keydown", (e) => {
-  pressed_keys[e.code] = true;
-});
-window.addEventListener("keyup", (e) => {
-  pressed_keys[e.code] = false;
-});
+Runtime.input = {};
+{
+  const pressed_keys = {};
+  const pressed_mouse_buttons = {};
 
-Runtime.is_key_pressed = (key) => {
-  const key_name = key.tag.description;
-  const pressed = pressed_keys[key_name] === true;
-  return pressed;
-};
+  Runtime.input.init = async ({ mouse_press }) => {
+    window.addEventListener("keydown", (e) => {
+      pressed_keys[e.code] = true;
+    });
+    window.addEventListener("keyup", (e) => {
+      pressed_keys[e.code] = false;
+    });
+    window.addEventListener("mousedown", (e) => {
+      mouse_press(e);
+      pressed_mouse_buttons[e.button] = true;
+    });
+    window.addEventListener("mouseup", (e) => {
+      pressed_mouse_buttons[e.button] = false;
+    });
+  };
+
+  Runtime.input.is_key_pressed = (key) => {
+    const key_name = key.tag.description;
+    return pressed_keys[key_name] === true;
+  };
+
+  Runtime.input.is_mouse_button_pressed = (button) => {
+    return pressed_mouse_buttons[button] === true;
+  };
+}
 
 Runtime.fetch_string = async (path) => {
   const response = await fetch(path);

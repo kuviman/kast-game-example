@@ -4,6 +4,11 @@ include "lib/_lib.ks";
 let (.geng = geng_ctx, .gl = gl_ctx) = geng.init();
 with geng.Context = geng_ctx;
 with gl.Context = gl_ctx;
+with input.Context = input.init();
+with audio.Context = audio.init();
+let sfx = (
+    .jump = audio.load("sfx/jump.wav"),
+);
 
 let grass_program = (
     let vertex_shader = ugli.compile_shader(
@@ -15,6 +20,19 @@ let grass_program = (
         fetch_string("shaders/grass/fragment.glsl")
     );
     ugli.Program.init(vertex_shader, fragment_shader)
+);
+
+let load_texture = path => ugli.Texture.init(load_image(path), :Nearest);
+
+let textures = (
+    .player = load_texture("unicorn.png"),
+    .enemy = load_texture("angry.png"),
+    .grass = (
+        let mut texture = load_texture("grass.png");
+        &mut texture |> ugli.Texture.set_wrap_separate(:Repeat, :ClampToEdge);
+        texture
+    ),
+    .play = load_texture("play.png"),
 );
 
 const PLAYER_OFFSET = 2;
@@ -33,16 +51,6 @@ const GRAVITY = 10;
 
 const GROUND = 0;
 const MAX_HEIGHT = 3;
-
-let textures = (
-    .player = ugli.Texture.init(load_image("unicorn.png"), :Nearest),
-    .enemy = ugli.Texture.init(load_image("angry.png"), :Nearest),
-    .grass = (
-        let mut texture = ugli.Texture.init(load_image("grass.png"), :Nearest);
-        &mut texture |> ugli.Texture.set_wrap_separate(:Repeat, :ClampToEdge);
-        texture
-    ),
-);
 
 const Unit = newtype (
     .pos :: Vec2,
@@ -73,64 +81,180 @@ let check_collision = (a :: &Unit, b :: &Unit) -> Bool => (
     and abs(a^.pos.1 - b^.pos.1) < a^.half_size.1 + b^.half_size.1
 );
 
-let mut player :: Option.t[Unit] = :Some(
-    .pos = (0, 0),
-    .half_size = (PLAYER_RADIUS, PLAYER_RADIUS),
-    .vel = (0, 0),
-    .texture = textures.player,
-    .on_ground = false,
-);
-
-let mut camera :: geng.Camera = (
-    .pos = (0, (GROUND + MAX_HEIGHT) / 2),
-    .fov = FOV,
-);
-
 use std.collections.Treap;
 
-let mut enemies = Treap.create();
-let spawn_enemy = () => (
-    let x = camera.pos.0 + FOV;
-    let y = std.random.gen_range(
-        .min = GROUND + ENEMY_RADIUS,
-        .max = MAX_HEIGHT - ENEMY_RADIUS,
-    );
-    let enemy = (
-        .pos = (x, y),
-        .half_size = (ENEMY_RADIUS, ENEMY_RADIUS),
-        .vel = (0, 0),
-        .texture = textures.enemy,
-        .on_ground = true,
-    );
-    enemies = Treap.join(enemies, Treap.singleton(enemy));
+const State = newtype (
+    .player :: Option.t[Unit],
+    .enemies :: Treap.t[Unit],
+    .camera :: geng.Camera,
+    .next_enemy :: Float32,
 );
 
-let start_time = time.now();
+# const StateCtx = @context State;
+impl State as module = (
+    module:
+    
+    const init = () -> State => (
+        .player = :None,
+        .enemies = Treap.create(),
+        .camera = (
+            .pos = (0, (GROUND + MAX_HEIGHT) / 2),
+            .fov = FOV,
+        ),
+        .next_enemy = 0,
+    );
+    
+    const restart = (state :: &mut State) => (
+        state^ = (
+            ...State.init(),
+            .player = :Some(
+                .pos = (0, 0),
+                .half_size = (PLAYER_RADIUS, PLAYER_RADIUS),
+                .vel = (0, 0),
+                .texture = textures.player,
+                .on_ground = false,
+            ),
+        );
+    );
+    
+    const spawn_enemy = (state :: &mut State) => (
+        let x = state^.camera.pos.0 + FOV;
+        let y = std.random.gen_range(
+            .min = GROUND + ENEMY_RADIUS,
+            .max = MAX_HEIGHT - ENEMY_RADIUS,
+        );
+        let enemy = (
+            .pos = (x, y),
+            .half_size = (ENEMY_RADIUS, ENEMY_RADIUS),
+            .vel = (0, 0),
+            .texture = textures.enemy,
+            .on_ground = true,
+        );
+        state^.enemies = Treap.join(state^.enemies, Treap.singleton(enemy));
+    );
+    
+    const handle_event = (state :: &mut State, event :: input.Event) => (
+        match event with (
+            | :MousePress(_) => (
+                if state^.player is :None then (
+                    state |> restart;
+                );
+            )
+            | _ => ()
+        );
+    );
+    
+    const update = (state :: &mut State, dt :: Float32) => (
+        let framebuffer_size = (
+            geng_ctx.canvas_size.width,
+            geng_ctx.canvas_size.height,
+        );
+        while state^.camera.pos.0 > state^.next_enemy do (
+            state |> spawn_enemy;
+            state^.next_enemy = (
+                state^.camera.pos.0
+                + std.random.gen_range(ENEMY_SPAWN_DISTANCE)
+            );
+        );
+        while Treap.length(&state^.enemies) != 0 do (
+            let first = Treap.at(&state^.enemies, 0);
+            if first^.pos.0 < state^.camera.pos.0 - FOV then (
+                _, state^.enemies = Treap.split_at(state^.enemies, 1);
+            ) else break;
+        );
+        if state^.player is :Some(ref mut player) then (
+            player^.vel.0 = min(player^.vel.0 + PLAYER_ACCEL * dt, PLAYER_SPEED);
+            let up = (
+                input.Key.is_pressed(:Space)
+                or input.Key.is_pressed(:ArrowUp)
+                or input.MouseButton.is_pressed(:Left)
+            );
+            player^.vel.1 = clamp(
+                player^.vel.1 + (if up then +1 else -1) * PLAYER_ACCEL * dt,
+                .min = -PLAYER_MAX_VERTICAL_SPEED,
+                .max = +PLAYER_MAX_VERTICAL_SPEED,
+            );
+            if up and player^.on_ground then (
+                player^.vel.1 = JUMP_SPEED;
+                audio.play(sfx.jump);
+            );
+            player |> Unit.update(dt);
+            if player^.pos.1 < GROUND + player^.half_size.1 then (
+                player^.vel.1 = 0;
+                player^.pos.1 = GROUND + player^.half_size.1;
+                player^.on_ground = true;
+            ) else (
+                player^.on_ground = false;
+            );
+            if player^.pos.1 > MAX_HEIGHT - player^.half_size.1 then (
+                player^.vel.1 = 0;
+                player^.pos.1 = MAX_HEIGHT - player^.half_size.1;
+            );
+            let half_screen = 0.5 * FOV * framebuffer_size.0 / framebuffer_size.1;
+            state^.camera.pos.0 = (
+                player^.pos.0
+                + half_screen
+                - min(PLAYER_OFFSET, half_screen)
+            );
+        );
+        for enemy in Treap.iter_mut(&mut state^.enemies) do (
+            enemy |> Unit.update(dt);
+            if state^.player is :Some(ref player_unit) then (
+                if check_collision(&enemy^, player_unit) then (
+                    state^.player = :None;
+                );
+            );
+        );
+    );
+    
+    const draw = (state :: &State) => (
+        let framebuffer_size = (
+            geng_ctx.canvas_size.width,
+            geng_ctx.canvas_size.height,
+        );
+        with geng.CameraCtx = geng.CameraUniforms.init(
+            state^.camera,
+            .framebuffer_size,
+        );
+        
+        ugli.clear(BACKGROUND_COLOR);
+        draw_grass();
+        for enemy in Treap.iter(&state^.enemies) do (
+            enemy |> Unit.draw;
+        );
+        if state^.player is :Some(ref player) then (
+            player |> Unit.draw;
+        ) else (
+            geng.draw_quad(
+                .pos = state^.camera.pos,
+                .half_size = (1, 1),
+                .texture = textures.play,
+            );
+        );
+    );
+    
+    const draw_grass = () => (
+        let camera = (@current geng.CameraCtx);
+        let geng = (@current geng.Context);
+        let program = grass_program;
+        program |> ugli.Program.@"use";
+        
+        let mut draw_state = ugli.DrawState.init();
+        let draw_state = &mut draw_state;
+        
+        program |> ugli.set_uniform("u_ground", GROUND, draw_state);
+        program |> ugli.set_uniform("u_view_matrix", camera.view_matrix, draw_state);
+        program |> ugli.set_uniform("u_projection_matrix", camera.projection_matrix, draw_state);
+        program |> ugli.set_uniform("u_texture", textures.grass, draw_state);
+        program |> ugli.set_uniform("u_texture_size_in_world_coords", Vec2.mul((32, 8), 2 * 0.3 / 16), draw_state);
+        program |> ugli.set_vertex_data_source(geng.quad.buffer);
+        gl.draw_arrays(gl.TRIANGLE_FAN, 0, 4);
+    );
+);
+
 let mut t = time.now();
-let mut next_enemy = camera.pos.0;
 
-let draw_grass = () => (
-    let camera = (@current geng.CameraCtx);
-    let geng = (@current geng.Context);
-    let program = grass_program;
-    program |> ugli.Program.@"use";
-    
-    let mut draw_state = ugli.DrawState.init();
-    let draw_state = &mut draw_state;
-    
-    program |> ugli.set_uniform("u_ground", GROUND, draw_state);
-    program |> ugli.set_uniform("u_view_matrix", camera.view_matrix, draw_state);
-    program |> ugli.set_uniform("u_projection_matrix", camera.projection_matrix, draw_state);
-    program |> ugli.set_uniform("u_texture", textures.grass, draw_state);
-    program |> ugli.set_uniform("u_texture_size_in_world_coords", Vec2.mul((32, 8), 2 * 0.3 / 16), draw_state);
-    program |> ugli.set_vertex_data_source(geng.quad.buffer);
-    gl.draw_arrays(gl.TRIANGLE_FAN, 0, 4);
-);
-
-with audio.Context = audio.init();
-let sfx = (
-    .jump = audio.load("sfx/jump.wav"),
-);
+let mut state = State.init();
 
 loop (
     let framebuffer_size = (
@@ -143,75 +267,11 @@ loop (
         t = new_t;
         dt
     );
-    while camera.pos.0 > next_enemy do (
-        spawn_enemy();
-        next_enemy = camera.pos.0 + std.random.gen_range(ENEMY_SPAWN_DISTANCE);
+    for event in input.iter_events() do (
+        State.handle_event(&mut state, event);
     );
-    while Treap.length(&enemies) != 0 do (
-        let first = Treap.at(&enemies, 0);
-        if first^.pos.0 < camera.pos.0 - FOV then (
-            _, enemies = Treap.split_at(enemies, 1);
-        ) else break;
-    );
-    if player is :Some(ref mut player) then (
-        player^.vel.0 = min(player^.vel.0 + PLAYER_ACCEL * dt, PLAYER_SPEED);
-        let up = (
-            input.is_key_pressed(:Space)
-            or input.is_key_pressed(:ArrowUp)
-        );
-        player^.vel.1 = clamp(
-            player^.vel.1 + (if up then +1 else -1) * PLAYER_ACCEL * dt,
-            .min = -PLAYER_MAX_VERTICAL_SPEED,
-            .max = +PLAYER_MAX_VERTICAL_SPEED,
-        );
-        if up and player^.on_ground then (
-            player^.vel.1 = JUMP_SPEED;
-            audio.play(sfx.jump);
-        );
-        player |> Unit.update(dt);
-        if player^.pos.1 < GROUND + player^.half_size.1 then (
-            player^.vel.1 = 0;
-            player^.pos.1 = GROUND + player^.half_size.1;
-            player^.on_ground = true;
-        ) else (
-            player^.on_ground = false;
-        );
-        if player^.pos.1 > MAX_HEIGHT - player^.half_size.1 then (
-            player^.vel.1 = 0;
-            player^.pos.1 = MAX_HEIGHT - player^.half_size.1;
-        );
-        let half_screen = 0.5 * FOV * framebuffer_size.0 / framebuffer_size.1;
-        camera.pos.0 = (
-            player^.pos.0
-            + half_screen
-            - min(PLAYER_OFFSET, half_screen)
-        );
-    );
-    for enemy in Treap.iter_mut(&mut enemies) do (
-        enemy |> Unit.update(dt);
-        if player is :Some(ref player_unit) then (
-            if check_collision(&enemy^, player_unit) then (
-                player = :None;
-            );
-        );
-    );
-    
-    with geng.CameraCtx = geng.CameraUniforms.init(
-        camera,
-        .framebuffer_size,
-    );
-    
-    ugli.clear(BACKGROUND_COLOR);
-    draw_grass();
-    
-    let aspect = geng_ctx.canvas_size.width / geng_ctx.canvas_size.height;
-    
-    for enemy in Treap.iter(&enemies) do (
-        enemy |> Unit.draw;
-    );
-    if player is :Some(ref player) then (
-        player |> Unit.draw;
-    );
+    State.update(&mut state, dt);
+    State.draw(&state);
     
     geng.await_next_frame();
 );
