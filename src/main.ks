@@ -102,6 +102,7 @@ const State = newtype (
     .stars :: Treap.t[Entity],
     .camera :: geng.Camera,
     .next_spawn :: Float32,
+    .score :: Int32,
 );
 
 # const StateCtx = @context State;
@@ -117,6 +118,7 @@ impl State as module = (
         ),
         .stars = Treap.create(),
         .next_spawn = 0,
+        .score = 0,
     );
     
     const restart = (state :: &mut State) => (
@@ -241,6 +243,7 @@ impl State as module = (
                             | :Star => (
                                 List.push_back(&mut to_despawn, i);
                                 audio.play(assets.sfx.pickup_star);
+                                state^.score += 1;
                             )
                         );
                     );
@@ -296,15 +299,29 @@ impl State as module = (
             );
         );
         
+        draw_score(state);
+    );
+    
+    const draw_score = (state :: &State) => (
+        let pos = (
+            state^.camera.pos.0 + 0.4,
+            -0.7,
+        );
         &assets.font
             |> font.Font.draw(
-                "score: 67",
-                .pos = (
-                    state^.camera.pos.0,
-                    0,
-                ),
+                "score:",
+                .pos,
                 .size = 0.3,
-                .color = (1, 1, 1, 1)
+                .color = (1, 1, 1, 1),
+                .align = 1
+            );
+        &assets.font
+            |> font.Font.draw(
+                state^.score |> to_string,
+                .pos,
+                .size = 0.3,
+                .color = (1, 1, 1, 1),
+                .align = 0
             );
     );
     

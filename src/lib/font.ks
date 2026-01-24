@@ -102,12 +102,28 @@ impl Font as module = (
         )
     );
     
+    const measure = (font :: &Font, text :: String) -> Float32 => (
+        let size :: Float32 = 1;
+        let tile_size = font^.config.tile_size;
+        let single_char_size = Vec2.mul((tile_size.0 / tile_size.1, 1), size);
+        let mut result = 0;
+        for c in text |> String.iter do (
+            if c == ' ' then (
+                result += font^.unit_space_size * size;
+                continue;
+            );
+            result += single_char_size.0;
+        );
+        result
+    );
+    
     const draw = (
         font :: &Font,
         text :: String,
         .pos :: Vec2,
         .size :: Float32,
         .color :: Vec4,
+        .align :: Float32,
     ) => (
         let ctx = (@current geng.Context);
         let camera = (@current geng.CameraCtx);
@@ -127,15 +143,14 @@ impl Font as module = (
         let tile_size = font^.config.tile_size;
         let single_char_size = Vec2.mul((tile_size.0 / tile_size.1, 1), size);
         program |> ugli.set_uniform("u_size", single_char_size, draw_state);
-        # TODO copy semantics bug
-        let mut pos :: Vec2 = (pos.0, pos.1);
+        let mut pos :: Vec2 = (pos.0 - measure(font, text) * align * size, pos.1);
         for c in text |> String.iter do (
             if c == ' ' then (
                 pos.0 += font^.unit_space_size * size;
                 continue;
             );
             match &font^.chars |> Map.get(c) with (
-                | :None => continue
+                | :None => panic("Char " + to_string(c) + " is not in font")
                 | :Some(&uv) => (
                     program |> ugli.set_uniform("u_uv_rect_pos", uv.pos, draw_state);
                     program |> ugli.set_uniform("u_uv_rect_size", uv.size, draw_state);
