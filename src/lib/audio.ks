@@ -36,4 +36,9 @@ const play = (buffer :: Buffer) => (
     play_with(buffer, PlayOptions.default())
 );
 
+const set_master_volume = (volume :: Float64) -> () => (
+    let ctx = (@current Context);
+    (@native "Runtime.audio.set_master_volume")(.ctx, .volume)
+);
+
 const Buffer = @opaque_type;

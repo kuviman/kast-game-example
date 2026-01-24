@@ -113,8 +113,9 @@ Runtime.audio = {
   init: async () => {
     const audio = new AudioContext();
     const master = audio.createGain();
-    master.gain.value = 0.1; // TODO
-    master.connect(audio.destination);
+    const hackGain = audio.createGain();
+    hackGain.gain.value = 0.15; // TODO
+    master.connect(hackGain).connect(audio.destination);
     return { audio, master };
   },
   load: async ({ ctx, path }) => {
@@ -133,6 +134,9 @@ Runtime.audio = {
     source.loop = options.loop;
     source.connect(gain).connect(ctx.master);
     source.start();
+  },
+  set_master_volume: ({ ctx, volume }) => {
+    ctx.master.gain.value = volume;
   },
 };
 

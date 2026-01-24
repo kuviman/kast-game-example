@@ -45,6 +45,8 @@ let assets = (
         .play = load_texture("play.png"),
         .star = load_texture("star.png"),
         .fullscreen = load_texture("fullscreen.png"),
+        .mute = load_texture("mute.png"),
+        .muted = load_texture("muted.png"),
     );
 );
 
@@ -107,6 +109,8 @@ const ZERO_QUAD_POS :: QuadPos = (
     .half_size = (0, 0),
 );
 
+let mut muted = false;
+
 const State = newtype (
     .player :: Option.t[Entity],
     .enemies :: Treap.t[Entity],
@@ -116,6 +120,7 @@ const State = newtype (
     .score :: Int32,
     .play_button_pos :: QuadPos,
     .fullscreen_button_pos :: QuadPos,
+    .mute_button_pos :: QuadPos,
 );
 
 # const StateCtx = @context State;
@@ -134,6 +139,7 @@ impl State as module = (
         .score = 0,
         .play_button_pos = ZERO_QUAD_POS,
         .fullscreen_button_pos = ZERO_QUAD_POS,
+        .mute_button_pos = ZERO_QUAD_POS,
     );
     
     const restart = (state :: &mut State) => (
@@ -179,6 +185,7 @@ impl State as module = (
     const WhatIsClicked = newtype (
         | :Play
         | :Fullscreen
+        | :Mute
     );
     
     const what_is_clicked = (
@@ -208,6 +215,7 @@ impl State as module = (
         );
         check(state^.play_button_pos, :Play);
         check(state^.fullscreen_button_pos, :Fullscreen);
+        check(state^.mute_button_pos, :Mute);
         :None
     );
     
@@ -222,6 +230,10 @@ impl State as module = (
                     )
                     | :Some(:Fullscreen) => (
                         geng.toggle_fullscreen();
+                    )
+                    | :Some(:Mute) => (
+                        muted = not muted;
+                        audio.set_master_volume(if muted then 0 else 1);
                     )
                     | :None => ()
                 );
@@ -360,12 +372,25 @@ impl State as module = (
             );
             
             state^.fullscreen_button_pos = (
-                .pos = (state^.camera.pos.0, 0.5),
+                .pos = (state^.camera.pos.0, 0.8),
                 .half_size = Vec2.div(assets.textures.fullscreen.size, 64),
             );
             geng.draw_quad(
                 ...state^.fullscreen_button_pos,
                 .texture = assets.textures.fullscreen,
+            );
+            
+            state^.mute_button_pos = (
+                .pos = (state^.camera.pos.0, 0.4),
+                .half_size = Vec2.div(assets.textures.mute.size, 64),
+            );
+            geng.draw_quad(
+                ...state^.mute_button_pos,
+                .texture = if muted then (
+                    assets.textures.muted
+                ) else (
+                    assets.textures.mute
+                ),
             );
         );
         
