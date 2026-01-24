@@ -4,14 +4,20 @@ const Vec2 = newtype (Float32, Float32);
 
 impl Vec2 as module = (
     module:
-    const add = ((ax, ay) :: Vec2, (bx, by) :: Vec2) -> Vec2 => (
-        ax + bx, ay + by
+    const add = (a :: Vec2, b :: Vec2) -> Vec2 => (
+        a.0 + b.0, a.1 + b.1
     );
-    const sub = ((ax, ay) :: Vec2, (bx, by) :: Vec2) -> Vec2 => (
-        ax - bx, ay - by
+    const sub = (a :: Vec2, b :: Vec2) -> Vec2 => (
+        a.0 - b.0, a.1 - b.1
     );
-    const mul = ((x, y) :: Vec2, k :: Float32) -> Vec2 => (
-        x * k, y * k
+    const mul = (v :: Vec2, k :: Float32) -> Vec2 => (
+        v.0 * k, v.1 * k
+    );
+    const vmul = (a :: Vec2, b :: Vec2) -> Vec2 => (
+        a.0 * b.0, a.1 * b.1
+    );
+    const vdiv = (a :: Vec2, b :: Vec2) -> Vec2 => (
+        a.0 / b.0, a.1 / b.1
     );
 );
 

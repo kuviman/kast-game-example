@@ -145,6 +145,11 @@ impl Texture as module = (
         gl.bind_texture(gl.TEXTURE_2D, handle);
         gl.pixel_store_bool(gl.UNPACK_FLIP_Y_WEBGL, true);
         gl.pixel_store_bool(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, true);
+        gl.tex_parameter_i(
+            gl.TEXTURE_2D,
+            gl.TEXTURE_MIN_FILTER,
+            gl.LINEAR,
+        );
         match filter with (
             | :Linear => ()
             | :Nearest => (
@@ -163,7 +168,7 @@ impl Texture as module = (
             gl.UNSIGNED_BYTE,
             image |> js.into_any
         );
-        gl.generate_mipmap(gl.TEXTURE_2D);
+        # gl.generate_mipmap(gl.TEXTURE_2D);
         gl.tex_parameter_i(
             gl.TEXTURE_2D,
             gl.TEXTURE_WRAP_S,
@@ -311,6 +316,37 @@ impl Vec2 as Uniform = (
             .location,
             .x,
             .y,
+        );
+    ),
+);
+
+impl Vec3 as Uniform = (
+    .set = (location, value, state) => (
+        let ctx = (@current gl.Context);
+        let list = js.List.init();
+        let (x, y, z) = value;
+        (@native "({ctx,location,x,y,z})=>ctx.uniform3f(location,x,y,z)")(
+            .ctx,
+            .location,
+            .x,
+            .y,
+            .z,
+        );
+    ),
+);
+
+impl Vec4 as Uniform = (
+    .set = (location, value, state) => (
+        let ctx = (@current gl.Context);
+        let list = js.List.init();
+        let (x, y, z, w) = value;
+        (@native "({ctx,location,x,y,z,w})=>ctx.uniform4f(location,x,y,z,w)")(
+            .ctx,
+            .location,
+            .x,
+            .y,
+            .z,
+            .w,
         );
     ),
 );

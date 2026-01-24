@@ -6,51 +6,45 @@ with geng.Context = geng_ctx;
 with gl.Context = gl_ctx;
 with input.Context = input.init();
 with audio.Context = audio.init();
-let music = audio.load("assets/music.wav");
-audio.play_with(
-    music,
-    (
-        .@"loop" = true,
-        .gain = 2,
-    ),
-);
-let sfx = (
-    .jump = audio.load("assets/sfx/jump.wav"),
-    .hit = audio.load("assets/sfx/hit.wav"),
-    .pickup_star = audio.load("assets/sfx/pickup_star.wav"),
-);
 
-let load_shader = name => (
-    let vertex_shader = ugli.compile_shader(
-        gl.VERTEX_SHADER,
-        fetch_string("assets/shaders/" + name + "/vertex.glsl")
+let assets = (
+    module:
+    
+    let music = audio.load("assets/music.wav");
+    audio.play_with(
+        music,
+        (
+            .@"loop" = true,
+            .gain = 2,
+        ),
     );
-    let fragment_shader = ugli.compile_shader(
-        gl.FRAGMENT_SHADER,
-        fetch_string("assets/shaders/" + name + "/fragment.glsl")
+    let sfx = (
+        .jump = audio.load("assets/sfx/jump.wav"),
+        .hit = audio.load("assets/sfx/hit.wav"),
+        .pickup_star = audio.load("assets/sfx/pickup_star.wav"),
     );
-    ugli.Program.init(vertex_shader, fragment_shader)
-);
-
-let shaders = (
-    .background = load_shader("background"),
-);
-
-let load_texture = path => ugli.Texture.init(load_image("assets/textures/" + path), :Nearest);
-
-let load_background_texture = path => (
-    let mut texture = load_texture(path);
-    &mut texture |> ugli.Texture.set_wrap_separate(:Repeat, :ClampToEdge);
-    texture
-);
-
-let textures = (
-    .player = load_texture("unicorn.png"),
-    .enemy = load_texture("angry.png"),
-    .grass = load_background_texture("grass.png"),
-    .clouds = load_background_texture("clouds.png"),
-    .play = load_texture("play.png"),
-    .star = load_texture("star.png"),
+    let font = font.Font.load("assets/font");
+    
+    let shaders = (
+        .background = geng.load_shader("assets/shaders/background"),
+    );
+    
+    let load_texture = path => geng.load_texture("assets/textures/" + path, :Nearest);
+    
+    let load_background_texture = path => (
+        let mut texture = load_texture(path);
+        &mut texture |> ugli.Texture.set_wrap_separate(:Repeat, :ClampToEdge);
+        texture
+    );
+    
+    let textures = (
+        .player = load_texture("unicorn.png"),
+        .enemy = load_texture("angry.png"),
+        .grass = load_background_texture("grass.png"),
+        .clouds = load_background_texture("clouds.png"),
+        .play = load_texture("play.png"),
+        .star = load_texture("star.png"),
+    );
 );
 
 const PLAYER_OFFSET = 2;
@@ -132,7 +126,7 @@ impl State as module = (
                 .pos = (0, 0),
                 .half_size = (PLAYER_RADIUS, PLAYER_RADIUS),
                 .vel = (0, 0),
-                .texture = textures.player,
+                .texture = assets.textures.player,
                 .on_ground = false,
             ),
         );
@@ -145,7 +139,11 @@ impl State as module = (
             .max = MAX_HEIGHT - ENEMY_RADIUS,
         );
         let is_enemy = std.random.gen_range[Float32](.min = 0, .max = 1) < STAR_CHANCE;
-        let texture = if is_enemy then textures.enemy else textures.star;
+        let texture = if is_enemy then (
+            assets.textures.enemy
+        ) else (
+            assets.textures.star
+        );
         let entity = (
             .pos = (x, y),
             .half_size = (ENEMY_RADIUS, ENEMY_RADIUS),
@@ -208,7 +206,7 @@ impl State as module = (
             );
             if up and player^.on_ground then (
                 player^.vel.1 = JUMP_SPEED;
-                audio.play(sfx.jump);
+                audio.play(assets.sfx.jump);
             );
             player |> Entity.update(dt);
             if player^.pos.1 < GROUND + player^.half_size.1 then (
@@ -238,11 +236,11 @@ impl State as module = (
                         match entity_type with (
                             | :Enemy => (
                                 state^.player = :None;
-                                audio.play(sfx.hit);
+                                audio.play(assets.sfx.hit);
                             )
                             | :Star => (
                                 List.push_back(&mut to_despawn, i);
-                                audio.play(sfx.pickup_star);
+                                audio.play(assets.sfx.pickup_star);
                             )
                         );
                     );
@@ -294,9 +292,20 @@ impl State as module = (
             geng.draw_quad(
                 .pos = state^.camera.pos,
                 .half_size = (1, 1),
-                .texture = textures.play,
+                .texture = assets.textures.play,
             );
         );
+        
+        &assets.font
+            |> font.Font.draw(
+                "hello, world!",
+                .pos = (
+                    state^.camera.pos.0,
+                    0,
+                ),
+                .size = 0.3,
+                .color = (1, 1, 1, 1)
+            );
     );
     
     const draw_background = (
@@ -307,7 +316,7 @@ impl State as module = (
     ) => (
         let camera = (@current geng.CameraCtx);
         let geng = (@current geng.Context);
-        let program = shaders.background;
+        let program = assets.shaders.background;
         program |> ugli.Program.@"use";
         
         let mut draw_state = ugli.DrawState.init();
@@ -329,7 +338,7 @@ impl State as module = (
         draw_background(
             .level = GROUND,
             .top = false,
-            .texture = textures.grass,
+            .texture = assets.textures.grass,
             .texture_offset = 0.7,
         );
     );
@@ -338,7 +347,7 @@ impl State as module = (
         draw_background(
             .level = MAX_HEIGHT,
             .top = true,
-            .texture = textures.clouds,
+            .texture = assets.textures.clouds,
             .texture_offset = 0.25,
         );
     );

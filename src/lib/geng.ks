@@ -161,3 +161,19 @@ const draw_quad = (
 const await_next_frame = () -> () => (
     await_animation_frame();
 );
+
+const load_texture = (path :: String, filter :: ugli.Filter) -> ugli.Texture => (
+    ugli.Texture.init(load_image(path), filter)
+);
+
+const load_shader = (path :: String) -> ugli.Program => (
+    let vertex_shader = ugli.compile_shader(
+        gl.VERTEX_SHADER,
+        fetch_string(path + "/vertex.glsl")
+    );
+    let fragment_shader = ugli.compile_shader(
+        gl.FRAGMENT_SHADER,
+        fetch_string(path + "/fragment.glsl")
+    );
+    ugli.Program.init(vertex_shader, fragment_shader)
+);
