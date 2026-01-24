@@ -17,6 +17,4 @@ build-watch:
 
 serve:
     just build
-    caddy file-server \
-        --listen 0.0.0.0:8080 \
-        --root target
+    caddy run
