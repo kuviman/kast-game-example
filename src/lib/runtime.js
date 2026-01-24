@@ -40,7 +40,17 @@ Runtime.input = {};
 
   const pointers = {};
 
-  Runtime.input.init = async ({ mouse_press }) => {
+  function canvas_pos(canvas, event) {
+    const rect = canvas.getBoundingClientRect();
+    const scale_x = canvas.width / rect.width;
+    const scale_y = canvas.height / rect.height;
+    return {
+      0: (event.clientX - rect.left) * scale_x,
+      1: canvas.height - (event.clientY - rect.top) * scale_y - 1,
+    };
+  }
+
+  Runtime.input.init = async ({ canvas, mouse_press, pointer_press }) => {
     window.addEventListener("keydown", (e) => {
       pressed_keys[e.code] = true;
     });
@@ -54,20 +64,19 @@ Runtime.input = {};
     window.addEventListener("mouseup", (e) => {
       pressed_mouse_buttons[e.button] = false;
     });
-    window.addEventListener("touchstart", (e) => {
-      e.touches;
-    });
-    window.addEventListener("pointerdown", (e) => {
+    canvas.addEventListener("pointerdown", (e) => {
       pointers[e.pointerId] = {
         down: true,
       };
+      const pos = canvas_pos(canvas, e);
+      pointer_press({ 0: e, 1: pos });
     });
-    window.addEventListener("pointerup", (e) => {
+    canvas.addEventListener("pointerup", (e) => {
       pointers[e.pointerId] = {
         down: false,
       };
     });
-    window.addEventListener("pointercancel", (e) => {
+    canvas.addEventListener("pointercancel", (e) => {
       delete pointers[e.pointerId];
     });
   };

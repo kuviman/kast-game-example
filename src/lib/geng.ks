@@ -13,6 +13,7 @@ impl Vertex as ugli.Vertex = (
 );
 
 const ContextT = newtype (
+    .canvas :: web.HtmlCanvasElement,
     .canvas_size :: (
         .width :: Float32,
         .height :: Float32,
@@ -79,6 +80,7 @@ const init = () -> (.geng :: ContextT, .gl :: gl.ContextT) => (
         ),
     );
     let mut geng = (
+        .canvas,
         .canvas_size = (.width = 1, .height = 1),
         .quad,
     );
@@ -133,6 +135,33 @@ impl CameraUniforms as module = (
             .view_matrix,
             .projection_matrix,
         )
+    );
+);
+
+impl Camera as module = (
+    module:
+    
+    const screen_to_world = (
+        camera :: Camera,
+        screen_pos :: Vec2,
+        .framebuffer_size :: Vec2,
+    ) -> Vec2 => (
+        let uniforms = CameraUniforms.init(camera, .framebuffer_size);
+        let gl_screen_pos = Vec2.map(
+            Vec2.vdiv(screen_pos, framebuffer_size),
+            x => x * 2 - 1,
+        );
+        # projection_matrix * view_matrix * world_pos = gl_screen_pos
+        let world_pos = Mat3.mul_vec(
+            Mat3.inverse(
+                Mat3.mul_mat(
+                    uniforms.projection_matrix,
+                    uniforms.view_matrix,
+                )
+            ),
+            (gl_screen_pos.0, gl_screen_pos.1, 1),
+        );
+        (world_pos.0, world_pos.1)
     );
 );
 

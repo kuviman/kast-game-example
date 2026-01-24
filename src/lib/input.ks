@@ -8,6 +8,8 @@ const raw = (
     const MouseEvent = newtype (
         .button :: Int32,
     );
+    
+    const PointerEvent = MouseEvent;
 );
 
 const ContextT = newtype (
@@ -16,13 +18,17 @@ const ContextT = newtype (
 );
 const Context = @context ContextT;
 
-const init = () -> ContextT => (
+const init = (canvas :: web.HtmlCanvasElement) -> ContextT => (
     let mut events = Queue.create();
     let runtime = (@native "Runtime.input.init")(
+        .canvas,
         .mouse_press = (e :: raw.MouseEvent) => (
             if MouseButton.from_raw(e.button) is :Some(button) then (
                 Queue.push(&mut events, :MousePress(.button));
             );
+        ),
+        .pointer_press = (e :: raw.PointerEvent, pos :: Vec2) => (
+            Queue.push(&mut events, :PointerPress(.pos));
         ),
     );
     (
@@ -85,6 +91,7 @@ impl MouseButton as module = (
 
 const Event = newtype (
     | :MousePress(.button :: MouseButton)
+    | :PointerPress(.pos :: Vec2)
 );
 
 const iter_events = () -> std.iter.Iterable[Event] => (

@@ -4,7 +4,7 @@ include "lib/_lib.ks";
 let (.geng = geng_ctx, .gl = gl_ctx) = geng.init();
 with geng.Context = geng_ctx;
 with gl.Context = gl_ctx;
-with input.Context = input.init();
+with input.Context = input.init(geng_ctx.canvas);
 with audio.Context = audio.init();
 
 let assets = (
@@ -96,6 +96,16 @@ let check_collision = (a :: &Entity, b :: &Entity) -> Bool => (
 
 use std.collections.Treap;
 
+const QuadPos = newtype (
+    .pos :: Vec2,
+    .half_size :: Vec2,
+);
+
+const ZERO_QUAD_POS :: QuadPos = (
+    .pos = (0, 0),
+    .half_size = (0, 0),
+);
+
 const State = newtype (
     .player :: Option.t[Entity],
     .enemies :: Treap.t[Entity],
@@ -103,6 +113,7 @@ const State = newtype (
     .camera :: geng.Camera,
     .next_spawn :: Float32,
     .score :: Int32,
+    .play_button_pos :: QuadPos,
 );
 
 # const StateCtx = @context State;
@@ -119,6 +130,7 @@ impl State as module = (
         .stars = Treap.create(),
         .next_spawn = 0,
         .score = 0,
+        .play_button_pos = ZERO_QUAD_POS,
     );
     
     const restart = (state :: &mut State) => (
@@ -161,11 +173,48 @@ impl State as module = (
         collection^ = Treap.join(collection^, Treap.singleton(entity));
     );
     
+    const WhatIsClicked = newtype (
+        | :Play
+    );
+    
+    const what_is_clicked = (
+        state :: &State,
+        screen_pos :: Vec2,
+    ) -> Option.t[WhatIsClicked] => with_return (
+        let framebuffer_size = (
+            geng_ctx.canvas_size.width,
+            geng_ctx.canvas_size.height,
+        );
+        let pos = geng.Camera.screen_to_world(
+            state^.camera,
+            screen_pos,
+            .framebuffer_size,
+        );
+        dbg.print(.screen_pos, .pos);
+        let check = (where :: QuadPos, what :: WhatIsClicked) => (
+            if (
+                pos.0 >= where.pos.0 - where.half_size.0
+                and pos.1 >= where.pos.1 - where.half_size.1
+                and pos.0 <= where.pos.0 + where.half_size.0
+                and pos.1 <= where.pos.1 + where.half_size.1
+            ) then (
+                return :Some(what);
+            )
+        );
+        check(state^.play_button_pos, :Play);
+        :None
+    );
+    
     const handle_event = (state :: &mut State, event :: input.Event) => (
         match event with (
-            | :MousePress(_) => (
-                if state^.player is :None then (
-                    state |> restart;
+            | :PointerPress(.pos) => (
+                match what_is_clicked(&state^, pos) with (
+                    | :Some(:Play) => (
+                        if state^.player is :None then (
+                            state |> restart;
+                        );
+                    )
+                    | :None => ()
                 );
             )
             | _ => ()
@@ -270,7 +319,7 @@ impl State as module = (
         update_collection(&mut state^.stars, :Star);
     );
     
-    const draw = (state :: &State) => (
+    const draw = (state :: &mut State) => (
         let framebuffer_size = (
             geng_ctx.canvas_size.width,
             geng_ctx.canvas_size.height,
@@ -292,14 +341,17 @@ impl State as module = (
         if state^.player is :Some(ref entity) then (
             entity |> Entity.draw;
         ) else (
-            geng.draw_quad(
+            state^.play_button_pos = (
                 .pos = state^.camera.pos,
                 .half_size = (1, 1),
+            );
+            geng.draw_quad(
+                ...state^.play_button_pos,
                 .texture = assets.textures.play,
             );
         );
         
-        draw_score(state);
+        draw_score(&state^);
     );
     
     const draw_score = (state :: &State) => (
@@ -389,7 +441,7 @@ loop (
         State.handle_event(&mut state, event);
     );
     State.update(&mut state, dt);
-    State.draw(&state);
+    State.draw(&mut state);
     
     geng.await_next_frame();
 );
