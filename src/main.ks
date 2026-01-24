@@ -298,7 +298,7 @@ impl State as module = (
         
         &assets.font
             |> font.Font.draw(
-                "hello, world!",
+                "score: 67",
                 .pos = (
                     state^.camera.pos.0,
                     0,
