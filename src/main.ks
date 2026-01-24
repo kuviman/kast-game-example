@@ -44,6 +44,7 @@ let assets = (
         .clouds = load_background_texture("clouds.png"),
         .play = load_texture("play.png"),
         .star = load_texture("star.png"),
+        .fullscreen = load_texture("fullscreen.png"),
     );
 );
 
@@ -114,6 +115,7 @@ const State = newtype (
     .next_spawn :: Float32,
     .score :: Int32,
     .play_button_pos :: QuadPos,
+    .fullscreen_button_pos :: QuadPos,
 );
 
 # const StateCtx = @context State;
@@ -131,6 +133,7 @@ impl State as module = (
         .next_spawn = 0,
         .score = 0,
         .play_button_pos = ZERO_QUAD_POS,
+        .fullscreen_button_pos = ZERO_QUAD_POS,
     );
     
     const restart = (state :: &mut State) => (
@@ -175,12 +178,14 @@ impl State as module = (
     
     const WhatIsClicked = newtype (
         | :Play
+        | :Fullscreen
     );
     
     const what_is_clicked = (
         state :: &State,
         screen_pos :: Vec2,
     ) -> Option.t[WhatIsClicked] => with_return (
+        if state^.player is :Some(_) then return :None;
         let framebuffer_size = (
             geng_ctx.canvas_size.width,
             geng_ctx.canvas_size.height,
@@ -190,7 +195,7 @@ impl State as module = (
             screen_pos,
             .framebuffer_size,
         );
-        dbg.print(.screen_pos, .pos);
+        # dbg.print(.screen_pos, .pos);
         let check = (where :: QuadPos, what :: WhatIsClicked) => (
             if (
                 pos.0 >= where.pos.0 - where.half_size.0
@@ -202,6 +207,7 @@ impl State as module = (
             )
         );
         check(state^.play_button_pos, :Play);
+        check(state^.fullscreen_button_pos, :Fullscreen);
         :None
     );
     
@@ -213,6 +219,9 @@ impl State as module = (
                         if state^.player is :None then (
                             state |> restart;
                         );
+                    )
+                    | :Some(:Fullscreen) => (
+                        geng.toggle_fullscreen();
                     )
                     | :None => ()
                 );
@@ -342,12 +351,21 @@ impl State as module = (
             entity |> Entity.draw;
         ) else (
             state^.play_button_pos = (
-                .pos = state^.camera.pos,
-                .half_size = (1, 1),
+                .pos = (state^.camera.pos.0, 2),
+                .half_size = Vec2.div(assets.textures.play.size, 32),
             );
             geng.draw_quad(
                 ...state^.play_button_pos,
                 .texture = assets.textures.play,
+            );
+            
+            state^.fullscreen_button_pos = (
+                .pos = (state^.camera.pos.0, 0.5),
+                .half_size = Vec2.div(assets.textures.fullscreen.size, 64),
+            );
+            geng.draw_quad(
+                ...state^.fullscreen_button_pos,
+                .texture = assets.textures.fullscreen,
             );
         );
         

@@ -206,3 +206,16 @@ const load_shader = (path :: String) -> ugli.Program => (
     );
     ugli.Program.init(vertex_shader, fragment_shader)
 );
+
+const is_fullscreen = () -> Bool => (
+    (@native "Runtime.is_fullscreen")()
+);
+
+const set_fullscreen = (full :: Bool) -> () => (
+    let ctx = (@current Context);
+    (@native "Runtime.set_fullscreen")(.canvas = ctx.canvas, .full)
+);
+
+const toggle_fullscreen = () => (
+    set_fullscreen(not is_fullscreen());
+);

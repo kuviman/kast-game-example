@@ -91,9 +91,9 @@ impl Mat3 as module = (
     );
     
     const mul_vec = (m :: Mat3, v :: Vec3) -> Vec3 => (
-        dbg.print("BEFORE MUL", .m, .v);
+        # dbg.print("BEFORE MUL", .m, .v);
         let result = (Vec3.dot(m.0, v), Vec3.dot(m.1, v), Vec3.dot(m.2, v));
-        dbg.print(.m, .v, .result);
+        # dbg.print(.m, .v, .result);
         result
     );
 );

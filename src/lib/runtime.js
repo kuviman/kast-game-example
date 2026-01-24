@@ -136,4 +136,18 @@ Runtime.audio = {
   },
 };
 
+Runtime.is_fullscreen = async () => {
+  console.log(document.fullscreenElement);
+  return document.fullscreenElement !== null;
+};
+
+Runtime.set_fullscreen = async ({ canvas, full }) => {
+  console.log("full=", full);
+  if (full) {
+    await canvas.requestFullscreen({ navigationUI: "hide" });
+  } else {
+    await document.exitFullscreen();
+  }
+};
+
 window.Runtime = Runtime;
