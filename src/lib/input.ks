@@ -5,17 +5,17 @@ module:
 const raw = (
     module:
     
-    const MouseEvent = newtype (
+    const MouseEvent = newtype {
         .button :: Int32,
-    );
+    };
     
     const PointerEvent = MouseEvent;
 );
 
-const ContextT = newtype (
+const ContextT = newtype {
     .runtime :: @opaque_type,
     .events :: Queue.t[Event],
-);
+};
 const Context = @context ContextT;
 
 const init = (canvas :: web.HtmlCanvasElement) -> ContextT => (
@@ -23,18 +23,18 @@ const init = (canvas :: web.HtmlCanvasElement) -> ContextT => (
     let runtime = (@native "Runtime.input.init")(
         .canvas,
         .mouse_press = (e :: raw.MouseEvent) => (
-            if MouseButton.from_raw(e.button) is :Some(button) then (
-                Queue.push(&mut events, :MousePress(.button));
+            if MouseButton.from_raw(e.button) is :Some (button) then (
+                Queue.push(&mut events, :MousePress { .button });
             );
         ),
         .pointer_press = (e :: raw.PointerEvent, pos :: Vec2) => (
-            Queue.push(&mut events, :PointerPress(.pos));
+            Queue.push(&mut events, :PointerPress { .pos });
         ),
     );
-    (
+    {
         .runtime,
         .events,
-    )
+    }
 );
 
 const Key = newtype (
@@ -64,11 +64,11 @@ impl MouseButton as module = (
     
     const from_raw = (raw :: Int32) -> Option.t[MouseButton] => (
         if raw == 0 then (
-            :Some(:Left)
+            :Some (:Left)
         ) else if raw == 1 then (
-            :Some(:Middle)
+            :Some (:Middle)
         ) else if raw == 2 then (
-            :Some(:Right)
+            :Some (:Right)
         ) else (
             :None
         )
@@ -90,20 +90,20 @@ impl MouseButton as module = (
 );
 
 const Event = newtype (
-    | :MousePress(.button :: MouseButton)
-    | :PointerPress(.pos :: Vec2)
+    | :MousePress { .button :: MouseButton }
+    | :PointerPress { .pos :: Vec2 }
 );
 
 const iter_events = () -> std.iter.Iterable[Event] => (
     let mut ctx = (@current Context);
-    (
+    {
         .iter = consumer => (
             while Queue.length(&ctx.events) > 0 do (
                 let event = Queue.pop(&mut ctx.events);
                 consumer(event);
             );
         ),
-    )
+    }
 );
 
 const is_any_pointer_pressed = () -> Bool => (

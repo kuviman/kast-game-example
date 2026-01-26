@@ -13,18 +13,18 @@ const load = (path) -> Buffer => (
     (@native "Runtime.audio.load")(.ctx, .path)
 );
 
-const PlayOptions = newtype (
+const PlayOptions = newtype {
     .@"loop" :: Bool,
     .gain :: Float64,
-);
+};
 
 impl PlayOptions as module = (
     module:
     
-    const default = () -> PlayOptions => (
+    const default = () -> PlayOptions => {
         .@"loop" = false,
         .gain = 1,
-    );
+    };
 );
 
 const play_with = (buffer :: Buffer, options :: PlayOptions) -> () => (

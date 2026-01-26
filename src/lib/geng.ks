@@ -1,31 +1,31 @@
 module:
 
-const Vertex = newtype (
+const Vertex = newtype {
     .a_pos :: Vec2,
     .a_uv :: Vec2,
-);
+};
 
-impl Vertex as ugli.Vertex = (
+impl Vertex as ugli.Vertex = {
     .init_fields = (data, f) => (
         f("a_pos", ugli.VertexBuffer.init_field(data, v => v^.a_pos));
         f("a_uv", ugli.VertexBuffer.init_field(data, v => v^.a_uv));
     ),
-);
+};
 
-const ContextT = newtype (
+const ContextT = newtype {
     .canvas :: web.HtmlCanvasElement,
-    .canvas_size :: (
+    .canvas_size :: {
         .width :: Float32,
         .height :: Float32,
-    ),
-    .quad :: (
+    },
+    .quad :: {
         .program :: ugli.Program,
         .buffer :: ugli.VertexBuffer.t[Vertex],
-    ),
-);
+    },
+};
 const Context = @context ContextT;
 
-const init = () -> (.geng :: ContextT, .gl :: gl.ContextT) => (
+const init = () -> { .geng :: ContextT, .gl :: gl.ContextT } => (
     let document = web.document();
     let canvas :: web.HtmlCanvasElement = document
         |> web.HtmlDocumentElement.get_element_by_id("canvas")
@@ -34,7 +34,7 @@ const init = () -> (.geng :: ContextT, .gl :: gl.ContextT) => (
         |> web.HtmlCanvasElement.get_context("webgl")
         |> js.from_any;
     with gl.Context = webgl;
-    let quad = (
+    let quad = {
         .program = (
             let vertex_shader = ugli.compile_shader(
                 gl.VERTEX_SHADER,
@@ -50,40 +50,40 @@ const init = () -> (.geng :: ContextT, .gl :: gl.ContextT) => (
             let mut data :: List.t[Vertex] = List.create();
             List.push_back(
                 &mut data,
-                (
-                    .a_pos = (-1, -1),
-                    .a_uv = (0, 0),
-                ),
+                {
+                    .a_pos = { -1, -1 },
+                    .a_uv = { 0, 0 },
+                },
             );
             List.push_back(
                 &mut data,
-                (
-                    .a_pos = (+1, -1),
-                    .a_uv = (1, 0),
-                ),
+                {
+                    .a_pos = { +1, -1 },
+                    .a_uv = { 1, 0 },
+                },
             );
             List.push_back(
                 &mut data,
-                (
-                    .a_pos = (+1, +1),
-                    .a_uv = (1, 1),
-                ),
+                {
+                    .a_pos = { +1, +1 },
+                    .a_uv = { 1, 1 },
+                },
             );
             List.push_back(
                 &mut data,
-                (
-                    .a_pos = (-1, +1),
-                    .a_uv = (0, 1),
-                ),
+                {
+                    .a_pos = { -1, +1 },
+                    .a_uv = { 0, 1 },
+                },
             );
             ugli.VertexBuffer.init(&data)
         ),
-    );
-    let mut geng = (
+    };
+    let mut geng = {
         .canvas,
-        .canvas_size = (.width = 1, .height = 1),
+        .canvas_size = { .width = 1, .height = 1 },
         .quad,
-    );
+    };
     (@native "Runtime.observe_canvas_size")(
         .canvas,
         .webgl,
@@ -91,25 +91,25 @@ const init = () -> (.geng :: ContextT, .gl :: gl.ContextT) => (
             geng.canvas_size = size;
         ),
     );
-    (
+    {
         .geng,
         .gl = webgl,
-    )
+    }
 );
 
 const canvas_size = () => (
     (@current Context).canvas_size
 );
 
-const Camera = newtype (
+const Camera = newtype {
     .pos :: Vec2,
     .fov :: Float32,
-);
+};
 
-const CameraUniforms = newtype (
+const CameraUniforms = newtype {
     .view_matrix :: Mat3,
     .projection_matrix :: Mat3,
-);
+};
 
 const CameraCtx = @context CameraUniforms;
 
@@ -120,21 +120,21 @@ impl CameraUniforms as module = (
         camera :: Camera,
         .framebuffer_size :: Vec2,
     ) -> CameraUniforms => (
-        let view_matrix = (
-            (1, 0, -camera.pos.0),
-            (0, 1, -camera.pos.1),
-            (0, 0, 1),
-        );
+        let view_matrix = {
+            { 1, 0, -camera.pos.0 },
+            { 0, 1, -camera.pos.1 },
+            { 0, 0, 1 },
+        };
         let aspect = framebuffer_size.0 / framebuffer_size.1;
-        let projection_matrix = (
-            (2 / aspect / camera.fov, 0, 0),
-            (0, 2 / camera.fov, 0),
-            (0, 0, 1),
-        );
-        (
+        let projection_matrix = {
+            { 2 / aspect / camera.fov, 0, 0 },
+            { 0, 2 / camera.fov, 0 },
+            { 0, 0, 1 },
+        };
+        {
             .view_matrix,
             .projection_matrix,
-        )
+        }
     );
 );
 
@@ -159,9 +159,9 @@ impl Camera as module = (
                     uniforms.view_matrix,
                 )
             ),
-            (gl_screen_pos.0, gl_screen_pos.1, 1),
+            { gl_screen_pos.0, gl_screen_pos.1, 1 },
         );
-        (world_pos.0, world_pos.1)
+        { world_pos.0, world_pos.1 }
     );
 );
 

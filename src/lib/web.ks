@@ -1,3 +1,12 @@
+@syntax "js_call" 30 @wrap never = "@js_call" " " js _=(@wrap if_any "(" ""/"\n\t" args:any ""/"\\\n" ")");
+impl syntax (@js_call js(args)) = `(
+    (@native ("async(ctx,...args)=>{return await(" + $js + ")(...args)}"))($args)
+);
+@syntax "js_call_method" 30 @wrap never = "@js_call" " " obj "." js _=(@wrap if_any "(" ""/"\n\t" args:any ""/"\\\n" ")");
+impl syntax (@js_call obj.js(args)) = `(
+    (@native ("async(ctx,o,...args)=>{return await o." + $js + "(...args)}"))($obj, ...{ $args })
+);
+
 module:
 
 const HtmlElement = @opaque_type;
@@ -11,19 +20,15 @@ impl HtmlCanvasElement as module = (
         canvas :: HtmlCanvasElement,
         context_type :: String,
     ) -> js.Any => (
-        (@native "({canvas,context_type})=>canvas.getContext(context_type)")(
-            .canvas,
-            .context_type,
-        )
+        @js_call canvas."getContext"(context_type)
     );
     
     const set_width = (
         canvas :: HtmlCanvasElement,
         width :: Int32,
     ) -> () => (
-        (@native "({canvas,width})=>{canvas.width=width}")(
-            .canvas,
-            .width,
+        @js_call "({canvas,width})=>{canvas.width=width}"(
+            { .canvas, .width }
         )
     );
     
@@ -31,9 +36,8 @@ impl HtmlCanvasElement as module = (
         canvas :: HtmlCanvasElement,
         height :: Int32,
     ) -> () => (
-        (@native "({canvas,height})=>{canvas.height=height}")(
-            .canvas,
-            .height,
+        @js_call "({canvas,height})=>{canvas.height=height}"(
+            { .canvas, .height }
         )
     );
 );
@@ -47,10 +51,7 @@ impl HtmlDocumentElement as module = (
         document :: HtmlDocumentElement,
         id :: String,
     ) -> HtmlElement => (
-        (@native "({document,id})=>document.getElementById(id)")(
-            .document,
-            .id,
-        )
+        @js_call document."getElementById"(id)
     );
 );
 
@@ -60,7 +61,7 @@ const document = () -> HtmlDocumentElement => (
 
 const WebGLRenderingContext = @opaque_type;
 
-const HtmlImageElement = newtype (
+const HtmlImageElement = newtype {
     .naturalWidth :: Float32,
     .naturalHeight :: Float32,
-);
+};

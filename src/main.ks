@@ -1,7 +1,7 @@
 use std.collections.Map;
 include "lib/_lib.ks";
 
-let (.geng = geng_ctx, .gl = gl_ctx) = geng.init();
+let { .geng = geng_ctx, .gl = gl_ctx } = geng.init();
 with geng.Context = geng_ctx;
 with gl.Context = gl_ctx;
 with input.Context = input.init(geng_ctx.canvas);
@@ -13,21 +13,21 @@ let assets = (
     let music = audio.load("assets/music.wav");
     audio.play_with(
         music,
-        (
+        {
             .@"loop" = true,
             .gain = 2,
-        ),
+        },
     );
-    let sfx = (
+    let sfx = {
         .jump = audio.load("assets/sfx/jump.wav"),
         .hit = audio.load("assets/sfx/hit.wav"),
         .pickup_star = audio.load("assets/sfx/pickup_star.wav"),
-    );
+    };
     let font = font.Font.load("assets/font");
     
-    let shaders = (
+    let shaders = {
         .background = geng.load_shader("assets/shaders/background"),
-    );
+    };
     
     let load_texture = path => geng.load_texture("assets/textures/" + path, :Nearest);
     
@@ -37,7 +37,7 @@ let assets = (
         texture
     );
     
-    let textures = (
+    let textures = {
         .player = load_texture("unicorn.png"),
         .enemy = load_texture("angry.png"),
         .grass = load_background_texture("grass.png"),
@@ -47,14 +47,14 @@ let assets = (
         .fullscreen = load_texture("fullscreen.png"),
         .mute = load_texture("mute.png"),
         .muted = load_texture("muted.png"),
-    );
+    };
 );
 
 const PLAYER_OFFSET = 2;
-const BACKGROUND_COLOR = (0, 0, 0.1, 1);
+const BACKGROUND_COLOR = { 0, 0, 0.1, 1 };
 const ENEMY_SPAWN_TIME = 1;
 const ENEMY_SPEED = 0.3;
-const SPAWN_DISTANCE = (.min = 3, .max = 7);
+const SPAWN_DISTANCE = { .min = 3, .max = 7 };
 const STAR_CHANCE = 0.5;
 const PLAYER_SPEED = 3;
 const PLAYER_MAX_VERTICAL_SPEED = 5;
@@ -68,13 +68,13 @@ const GRAVITY = 10;
 const GROUND = 0;
 const MAX_HEIGHT = 3;
 
-const Entity = newtype (
+const Entity = newtype {
     .pos :: Vec2,
     .half_size :: Vec2,
     .vel :: Vec2,
     .texture :: ugli.Texture,
     .on_ground :: Bool,
-);
+};
 
 impl Entity as module = (
     module:
@@ -99,19 +99,19 @@ let check_collision = (a :: &Entity, b :: &Entity) -> Bool => (
 
 use std.collections.Treap;
 
-const QuadPos = newtype (
+const QuadPos = newtype {
     .pos :: Vec2,
     .half_size :: Vec2,
-);
+};
 
-const ZERO_QUAD_POS :: QuadPos = (
-    .pos = (0, 0),
-    .half_size = (0, 0),
-);
+const ZERO_QUAD_POS :: QuadPos = {
+    .pos = { 0, 0 },
+    .half_size = { 0, 0 },
+};
 
 let mut muted = false;
 
-const State = newtype (
+const State = newtype {
     .player :: Option.t[Entity],
     .enemies :: Treap.t[Entity],
     .stars :: Treap.t[Entity],
@@ -121,38 +121,38 @@ const State = newtype (
     .play_button_pos :: QuadPos,
     .fullscreen_button_pos :: QuadPos,
     .mute_button_pos :: QuadPos,
-);
+};
 
 # const StateCtx = @context State;
 impl State as module = (
     module:
     
-    const init = () -> State => (
+    const init = () -> State => {
         .player = :None,
         .enemies = Treap.create(),
-        .camera = (
-            .pos = (0, (GROUND + MAX_HEIGHT) / 2),
+        .camera = {
+            .pos = { 0, (GROUND + MAX_HEIGHT) / 2 },
             .fov = FOV,
-        ),
+        },
         .stars = Treap.create(),
         .next_spawn = 0,
         .score = 0,
         .play_button_pos = ZERO_QUAD_POS,
         .fullscreen_button_pos = ZERO_QUAD_POS,
         .mute_button_pos = ZERO_QUAD_POS,
-    );
+    };
     
     const restart = (state :: &mut State) => (
-        state^ = (
+        state^ = {
             ...State.init(),
-            .player = :Some(
-                .pos = (0, 0),
-                .half_size = (PLAYER_RADIUS, PLAYER_RADIUS),
-                .vel = (0, 0),
+            .player = :Some {
+                .pos = { 0, 0 },
+                .half_size = { PLAYER_RADIUS, PLAYER_RADIUS },
+                .vel = { 0, 0 },
                 .texture = assets.textures.player,
                 .on_ground = false,
-            ),
-        );
+            },
+        };
     );
     
     const spawn = (state :: &mut State) => (
@@ -167,13 +167,13 @@ impl State as module = (
         ) else (
             assets.textures.star
         );
-        let entity = (
-            .pos = (x, y),
-            .half_size = (ENEMY_RADIUS, ENEMY_RADIUS),
-            .vel = (0, 0),
+        let entity = {
+            .pos = { x, y },
+            .half_size = { ENEMY_RADIUS, ENEMY_RADIUS },
+            .vel = { 0, 0 },
             .texture,
             .on_ground = true,
-        );
+        };
         let collection = if is_enemy then (
             &mut state^.enemies
         ) else (
@@ -192,11 +192,11 @@ impl State as module = (
         state :: &State,
         screen_pos :: Vec2,
     ) -> Option.t[WhatIsClicked] => with_return (
-        if state^.player is :Some(_) then return :None;
-        let framebuffer_size = (
+        if state^.player is :Some (_) then return :None;
+        let framebuffer_size = {
             geng_ctx.canvas_size.width,
             geng_ctx.canvas_size.height,
-        );
+        };
         let pos = geng.Camera.screen_to_world(
             state^.camera,
             screen_pos,
@@ -210,7 +210,7 @@ impl State as module = (
                 and pos.0 <= where.pos.0 + where.half_size.0
                 and pos.1 <= where.pos.1 + where.half_size.1
             ) then (
-                return :Some(what);
+                return :Some (what);
             )
         );
         check(state^.play_button_pos, :Play);
@@ -221,17 +221,17 @@ impl State as module = (
     
     const handle_event = (state :: &mut State, event :: input.Event) => (
         match event with (
-            | :PointerPress(.pos) => (
+            | :PointerPress { .pos } => (
                 match what_is_clicked(&state^, pos) with (
-                    | :Some(:Play) => (
+                    | :Some (:Play) => (
                         if state^.player is :None then (
                             state |> restart;
                         );
                     )
-                    | :Some(:Fullscreen) => (
+                    | :Some (:Fullscreen) => (
                         geng.toggle_fullscreen();
                     )
-                    | :Some(:Mute) => (
+                    | :Some (:Mute) => (
                         muted = not muted;
                         audio.set_master_volume(if muted then 0 else 1);
                     )
@@ -243,28 +243,28 @@ impl State as module = (
     );
     
     const update = (state :: &mut State, dt :: Float32) => (
-        let framebuffer_size = (
+        let framebuffer_size = {
             geng_ctx.canvas_size.width,
             geng_ctx.canvas_size.height,
-        );
+        };
         while state^.camera.pos.0 > state^.next_spawn do (
             state |> spawn;
             state^.next_spawn = (
                 state^.camera.pos.0
-                + std.random.gen_range(SPAWN_DISTANCE)
+                + std.random.gen_range(...SPAWN_DISTANCE)
             );
         );
         let despawn = collection => (
             while Treap.length(&collection^) != 0 do (
                 let first = Treap.at(&collection^, 0);
                 if first^.pos.0 < state^.camera.pos.0 - FOV then (
-                    _, collection^ = Treap.split_at(collection^, 1);
+                    { _, collection^ } = Treap.split_at(collection^, 1);
                 ) else break;
             );
         );
         despawn(&mut state^.enemies);
         despawn(&mut state^.stars);
-        if state^.player is :Some(ref mut player) then (
+        if state^.player is :Some (ref mut player) then (
             player^.vel.0 = min(player^.vel.0 + PLAYER_ACCEL * dt, PLAYER_SPEED);
             let up = (
                 input.Key.is_pressed(:Space)
@@ -301,9 +301,9 @@ impl State as module = (
         );
         let update_collection = (collection, entity_type) => (
             let mut to_despawn = List.create();
-            for (i, entity) in Treap.iter_mut(collection) |> std.iter.enumerate do (
+            for { i, entity } in Treap.iter_mut(collection) |> std.iter.enumerate do (
                 entity |> Entity.update(dt);
-                if state^.player is :Some(ref player_entity) then (
+                if state^.player is :Some (ref player_entity) then (
                     if check_collision(&entity^, player_entity) then (
                         match entity_type with (
                             | :Enemy => (
@@ -322,16 +322,16 @@ impl State as module = (
             const pop_back = [T] (a :: &mut List.t[T]) -> Option.t[T] => (
                 let length = Treap.length(&a^.inner);
                 if length == 0 then :None else (
-                    a^.inner, (let node) = Treap.split_at(a^.inner, Treap.length(&a^.inner) - 1);
-                    let :Node(data) = node;
-                    :Some(data.value)
+                    { a^.inner, (let node) } = Treap.split_at(a^.inner, Treap.length(&a^.inner) - 1);
+                    let :Node (data) = node;
+                    :Some (data.value)
                 )
             );
             
             loop (
-                if pop_back(&mut to_despawn) is :Some(i) then (
-                    let before, i_and_after = Treap.split_at(collection^, i);
-                    let _, after = Treap.split_at(i_and_after, 1);
+                if pop_back(&mut to_despawn) is :Some (i) then (
+                    let { before, i_and_after } = Treap.split_at(collection^, i);
+                    let { _, after } = Treap.split_at(i_and_after, 1);
                     collection^ = Treap.join(before, after);
                 ) else break;
             );
@@ -341,10 +341,10 @@ impl State as module = (
     );
     
     const draw = (state :: &mut State) => (
-        let framebuffer_size = (
+        let framebuffer_size = {
             geng_ctx.canvas_size.width,
             geng_ctx.canvas_size.height,
-        );
+        };
         with geng.CameraCtx = geng.CameraUniforms.init(
             state^.camera,
             .framebuffer_size,
@@ -359,31 +359,31 @@ impl State as module = (
         for entity in Treap.iter(&state^.stars) do (
             entity |> Entity.draw;
         );
-        if state^.player is :Some(ref entity) then (
+        if state^.player is :Some (ref entity) then (
             entity |> Entity.draw;
         ) else (
-            state^.play_button_pos = (
-                .pos = (state^.camera.pos.0, 2),
+            state^.play_button_pos = {
+                .pos = { state^.camera.pos.0, 2 },
                 .half_size = Vec2.div(assets.textures.play.size, 32),
-            );
+            };
             geng.draw_quad(
                 ...state^.play_button_pos,
                 .texture = assets.textures.play,
             );
             
-            state^.fullscreen_button_pos = (
-                .pos = (state^.camera.pos.0, 0.8),
+            state^.fullscreen_button_pos = {
+                .pos = { state^.camera.pos.0, 0.8 },
                 .half_size = Vec2.div(assets.textures.fullscreen.size, 64),
-            );
+            };
             geng.draw_quad(
                 ...state^.fullscreen_button_pos,
                 .texture = assets.textures.fullscreen,
             );
             
-            state^.mute_button_pos = (
-                .pos = (state^.camera.pos.0, 0.4),
+            state^.mute_button_pos = {
+                .pos = { state^.camera.pos.0, 0.4 },
                 .half_size = Vec2.div(assets.textures.mute.size, 64),
-            );
+            };
             geng.draw_quad(
                 ...state^.mute_button_pos,
                 .texture = if muted then (
@@ -398,16 +398,16 @@ impl State as module = (
     );
     
     const draw_score = (state :: &State) => (
-        let pos = (
+        let pos = {
             state^.camera.pos.0 + 0.4,
             -0.7,
-        );
+        };
         &assets.font
             |> font.Font.draw(
                 "score:",
                 .pos,
                 .size = 0.3,
-                .color = (1, 1, 1, 1),
+                .color = { 1, 1, 1, 1 },
                 .align = 1
             );
         &assets.font
@@ -415,7 +415,7 @@ impl State as module = (
                 state^.score |> to_string,
                 .pos,
                 .size = 0.3,
-                .color = (1, 1, 1, 1),
+                .color = { 1, 1, 1, 1 },
                 .align = 0
             );
     );
@@ -470,10 +470,10 @@ let mut t = time.now();
 let mut state = State.init();
 
 loop (
-    let framebuffer_size = (
+    let framebuffer_size = {
         geng_ctx.canvas_size.width,
         geng_ctx.canvas_size.height,
-    );
+    };
     let dt = (
         let new_t = time.now();
         let dt = new_t - t;

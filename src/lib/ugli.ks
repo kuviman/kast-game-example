@@ -1,17 +1,26 @@
+@syntax "js_call" 30 @wrap never = "@js_call" " " js _=(@wrap if_any "(" ""/"\n\t" args:any ""/"\\\n" ")");
+impl syntax (@js_call js(args)) = `(
+    (@native ("async(ctx,...args)=>{return await(" + $js + ")(...args)}"))($args)
+);
+@syntax "js_call_method" 30 @wrap never = "@js_call" " " obj "." js _=(@wrap if_any "(" ""/"\n\t" args:any ""/"\\\n" ")");
+impl syntax (@js_call obj.js(args)) = `(
+    (@native ("async(ctx,o,...args)=>{return await o." + $js + "(...args)}"))($obj, ...{ $args })
+);
+
 module:
 
 const clear = (color :: Vec4) => (
-    gl.clear_color(color);
+    gl.clear_color(...color);
     gl.clear(gl.COLOR_BUFFER_BIT);
 );
 
-const SizedType = [Self] newtype (
+const SizedType = [Self] newtype {
     .size :: Int32,
-);
+};
 
-impl Float32 as SizedType = (
+impl Float32 as SizedType = {
     .size = 4,
-);
+};
 
 const compile_shader = (shader_type, source) => (
     let shader = gl.create_shader(shader_type)
@@ -28,23 +37,23 @@ const compile_shader = (shader_type, source) => (
     shader
 );
 
-const AttributeInfo = newtype (
+const AttributeInfo = newtype {
     .raw :: gl.ActiveInfo,
     .index :: Int32,
-);
+};
 
-const UniformInfo = newtype (
+const UniformInfo = newtype {
     .raw :: gl.ActiveInfo,
     .location :: gl.WebGLUniformLocation,
     .index :: Int32,
-);
+};
 
-const Program = newtype (
+const Program = newtype {
     .ctx :: gl.ContextT,
     .handle :: gl.Program,
     .attributes :: Map.t[String, AttributeInfo],
     .uniforms :: Map.t[String, UniformInfo],
-);
+};
 
 impl Program as module = (
     module:
@@ -72,10 +81,10 @@ impl Program as module = (
                 dbg.print(active_info);
                 panic("active_info.size != 1");
             );
-            let attribute_info = (
+            let attribute_info = {
                 .raw = active_info,
                 .index,
-            );
+            };
             Map.add(&mut attributes, attribute_info.raw.name, attribute_info);
         );
         let active_uniforms = gl.get_program_parameter_int(program, gl.ACTIVE_UNIFORMS);
@@ -88,19 +97,19 @@ impl Program as module = (
             );
             let location = gl.get_uniform_location(program, active_info.name)
                 |> Option.unwrap;
-            let uniform_info = (
+            let uniform_info = {
                 .raw = active_info,
                 .location,
                 .index,
-            );
+            };
             Map.add(&mut uniforms, uniform_info.raw.name, uniform_info);
         );
-        (
+        {
             .ctx,
             .handle = program,
             .attributes,
             .uniforms,
-        )
+        }
     );
     
     const @"use" = (program :: Program) => (
@@ -108,10 +117,10 @@ impl Program as module = (
     );
 );
 
-const Texture = newtype (
+const Texture = newtype {
     .size :: Vec2,
     .handle :: gl.WebGLTexture,
-);
+};
 
 const Filter = newtype (
     | :Nearest
@@ -179,10 +188,10 @@ impl Texture as module = (
             gl.TEXTURE_WRAP_T,
             gl.CLAMP_TO_EDGE,
         );
-        (
-            .size = (image.naturalWidth, image.naturalHeight),
+        {
+            .size = { image.naturalWidth, image.naturalHeight },
             .handle,
-        )
+        }
     );
     
     const set_wrap_separate = (
@@ -204,71 +213,71 @@ impl Texture as module = (
     );
 );
 
-const VertexAttributeType = newtype (
+const VertexAttributeType = newtype {
     .size :: gl.GLint,
     .@"type" :: gl.GLenum,
     .type_size :: Int32,
-);
+};
 
-const VertexAttribute = [Self] newtype (
+const VertexAttribute = [Self] newtype {
     .@"type" :: VertexAttributeType,
     .construct_data :: &List.t[Self] -> js.Any,
-);
+};
 
-impl Vec2 as VertexAttribute = (
-    .@"type" = (
+impl Vec2 as VertexAttribute = {
+    .@"type" = {
         .size = 2,
         .@"type" = gl.FLOAT,
         .type_size = 4,
-    ),
+    },
     .construct_data = data => (
         let list = js.List.init();
-        for &(x, y) in List.iter(data) do (
+        for &{ x, y } in List.iter(data) do (
             list |> js.List.push(x);
             list |> js.List.push(y);
         );
-        (@native "list=>new Float32Array(list)")(list)
+        js.new_float32_array(list)
     ),
-);
+};
 
-impl Vec3 as VertexAttribute = (
-    .@"type" = (
+impl Vec3 as VertexAttribute = {
+    .@"type" = {
         .size = 3,
         .@"type" = gl.FLOAT,
         .type_size = 4,
-    ),
+    },
     .construct_data = data => (
         let list = js.List.init();
-        for &(x, y, z) in List.iter(data) do (
+        for &{ x, y, z } in List.iter(data) do (
             list |> js.List.push(x);
             list |> js.List.push(y);
             list |> js.List.push(z);
         );
-        (@native "list=>new Float32Array(list)")(list)
+        js.new_float32_array(list)
     ),
-);
+};
 
-impl Vec4 as VertexAttribute = (
-    .@"type" = (
+impl Vec4 as VertexAttribute = {
+    .@"type" = {
         .size = 4,
         .@"type" = gl.FLOAT,
         .type_size = 4,
-    ),
+    },
     .construct_data = data => (
         let list = js.List.init();
-        for &(x, y, z, w) in List.iter(data) do (
+        for &{ x, y, z, w } in List.iter(data) do (
             list |> js.List.push(x);
             list |> js.List.push(y);
             list |> js.List.push(z);
             list |> js.List.push(w);
         );
-        (@native "list=>new Float32Array(list)")(list)
+        js.new_float32_array(list)
     ),
-);
+};
 
-const DrawState = newtype (
+const DrawState = newtype {
     .active_texture_index :: Int32,
-);
+};
 
 impl DrawState as module = (
     module:
@@ -284,78 +293,54 @@ impl DrawState as module = (
             gl.ONE,
         );
         
-        (
-            .active_texture_index = 0,
-        )
+        { .active_texture_index = 0 }
     );
 );
 
-const Uniform = [Self] newtype (
+const Uniform = [Self] newtype {
     .set :: (gl.WebGLUniformLocation, Self, &mut DrawState) -> (),
-);
+};
 
-impl Float32 as Uniform = (
+impl Float32 as Uniform = {
     .set = (location, x, state) => (
         let ctx = (@current gl.Context);
         let list = js.List.init();
-        (@native "({ctx,location,x})=>ctx.uniform1f(location,x)")(
-            .ctx,
-            .location,
-            .x,
-        );
+        @js_call ctx."uniform1f"(location, x);
     ),
-);
+};
 
-impl Vec2 as Uniform = (
+impl Vec2 as Uniform = {
     .set = (location, value, state) => (
         let ctx = (@current gl.Context);
         let list = js.List.init();
-        let (x, y) = value;
-        (@native "({ctx,location,x,y})=>ctx.uniform2f(location,x,y)")(
-            .ctx,
-            .location,
-            .x,
-            .y,
-        );
+        let { x, y } = value;
+        @js_call ctx."uniform2f"(location, x, y);
     ),
-);
+};
 
-impl Vec3 as Uniform = (
+impl Vec3 as Uniform = {
     .set = (location, value, state) => (
         let ctx = (@current gl.Context);
         let list = js.List.init();
-        let (x, y, z) = value;
-        (@native "({ctx,location,x,y,z})=>ctx.uniform3f(location,x,y,z)")(
-            .ctx,
-            .location,
-            .x,
-            .y,
-            .z,
-        );
+        let { x, y, z } = value;
+        @js_call ctx."uniform3f"(location, x, y, z);
     ),
-);
+};
 
-impl Vec4 as Uniform = (
+impl Vec4 as Uniform = {
     .set = (location, value, state) => (
         let ctx = (@current gl.Context);
         let list = js.List.init();
-        let (x, y, z, w) = value;
-        (@native "({ctx,location,x,y,z,w})=>ctx.uniform4f(location,x,y,z,w)")(
-            .ctx,
-            .location,
-            .x,
-            .y,
-            .z,
-            .w,
-        );
+        let { x, y, z, w } = value;
+        @js_call ctx."uniform4f"(location, x, y, z, w);
     ),
-);
+};
 
-impl Mat3 as Uniform = (
+impl Mat3 as Uniform = {
     .set = (location, value, state) => (
         let ctx = (@current gl.Context);
         let list = js.List.init();
-        let (a, b, c) = value;
+        let { a, b, c } = value;
         let add = (f) => (
             list |> js.List.push(f(a));
             list |> js.List.push(f(b));
@@ -364,31 +349,20 @@ impl Mat3 as Uniform = (
         add(row => row.0);
         add(row => row.1);
         add(row => row.2);
-        let data = (@native "list=>new Float32Array(list)")(list);
-        (@native "({ctx,location,data})=>ctx.uniformMatrix3fv(location,false,data)")(
-            .ctx,
-            .data,
-            .location,
-        );
+        let data = js.new_float32_array(list);
+        @js_call ctx."uniformMatrix3fv"(location, false, data);
     ),
-);
+};
 
-impl Texture as Uniform = (
+impl Texture as Uniform = {
     .set = (location, texture, state) => (
         let ctx = (@current gl.Context);
-        (@native "({ctx,i})=>ctx.activeTexture(i)")(
-            .ctx,
-            .i = gl.TEXTURE0 + state^.active_texture_index,
-        );
+        @js_call ctx."activeTexture"(gl.TEXTURE0 + state^.active_texture_index);
         gl.bind_texture(gl.TEXTURE_2D, texture.handle);
-        (@native "({ctx,location,i})=>ctx.uniform1i(location,i)")(
-            .ctx,
-            .location,
-            .i = state^.active_texture_index,
-        );
+        @js_call ctx."uniform1i"(location, state^.active_texture_index);
         state^.active_texture_index += 1;
     ),
-);
+};
 
 const set_uniform = [T] (
     program :: Program,
@@ -398,29 +372,29 @@ const set_uniform = [T] (
 ) -> () => with_return (
     let ctx = program.ctx;
     let uniform_info = match &program.uniforms |> Map.get(name) with (
-        | :Some(info) => info
+        | :Some (info) => info
         | :None => return
     );
     (T as Uniform).set(uniform_info^.location, value, state);
 );
 
-const Vertex = [Self] newtype (
+const Vertex = [Self] newtype {
     .init_fields :: (&List.t[Self], (String, VertexBuffer.Field) -> ()) -> (),
-);
+};
 
 const VertexBuffer = (
     module:
     
-    const Field = newtype (
+    const Field = newtype {
         .buffer :: gl.Buffer,
         .stride :: Int32,
         .offset :: Int32,
         .@"type" :: VertexAttributeType,
-    );
+    };
     
-    const t = [V] newtype (
+    const t = [V] newtype {
         .fields :: Map.t[String, Field],
-    );
+    };
     
     const init = [V] (data :: &List.t[V]) -> t[V] => (
         let mut fields = Map.create();
@@ -430,7 +404,7 @@ const VertexBuffer = (
                 Map.add(&mut fields, name, field);
             )
         );
-        (.fields)
+        { .fields }
     );
     
     const init_field = [V, T] (
@@ -451,12 +425,12 @@ const VertexBuffer = (
         let offset = 0;
         let @"type" = (T as VertexAttribute).@"type";
         let stride = @"type".size * @"type".type_size;
-        (
+        {
             .buffer,
             .stride,
             .offset,
             .@"type",
-        )
+        }
     );
 );
 
@@ -465,9 +439,9 @@ const set_vertex_data_source = [V] (
     buffer :: VertexBuffer.t[V],
 ) -> () => (
     let ctx = program.ctx;
-    for &(.key = name, .value = field) in &buffer.fields |> Map.iter do (
+    for &{ .key = name, .value = field } in &buffer.fields |> Map.iter do (
         let attribute_info = match &program.attributes |> Map.get(name) with (
-            | :Some(info) => info
+            | :Some (info) => info
             | :None => continue
         );
         gl.bind_buffer(gl.ARRAY_BUFFER, field.buffer);
