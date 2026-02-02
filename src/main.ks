@@ -1,7 +1,9 @@
 use std.collections.Map;
-include "lib/_lib.ks";
+use (import "lib/_lib.ks").*;
 
+# geng.init :: () with (Allocator, Async) -> () with (geng.Context, gl.Context);
 let { .geng = geng_ctx, .gl = gl_ctx } = geng.init();
+
 with geng.Context = geng_ctx;
 with gl.Context = gl_ctx;
 with input.Context = input.init(geng_ctx.canvas);

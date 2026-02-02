@@ -1,3 +1,5 @@
+use (import "./la.ks").*;
+
 @syntax "js_call" 30 @wrap never = "@js_call" " " js _=(@wrap if_any "(" ""/"\n\t" args:any ""/"\\\n" ")");
 impl syntax (@js_call js(args)) = `(
     (@native ("async(ctx,...args)=>{return await(" + $js + ")(...args)}"))($args)

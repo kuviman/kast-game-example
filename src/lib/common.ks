@@ -1,3 +1,9 @@
+module:
+
+use (import "./la.ks").*;
+const js = import "./js.ks";
+const web = import "./web.ks";
+
 const fetch_string = (path :: String) -> String => (
     (@native "Runtime.fetch_string")(path)
 );

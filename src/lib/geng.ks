@@ -1,3 +1,7 @@
+use (import "./common.ks").*;
+const gl = import "./gl/gl.ks";
+const ugli = import "./ugli.ks";
+
 module:
 
 const Vertex = newtype {
@@ -26,6 +30,14 @@ const ContextT = newtype {
 const Context = @context ContextT;
 
 const init = () -> { .geng :: ContextT, .gl :: gl.ContextT } => (
+    @native (
+        "(()=>{"
+        + std.fs.read_file(
+            std.path.dirname(__FILE__) + "/runtime.js"
+        )
+        + "})()"
+    );
+    
     let document = web.document();
     let canvas :: web.HtmlCanvasElement = document
         |> web.HtmlDocumentElement.get_element_by_id("canvas")

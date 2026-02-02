@@ -1,3 +1,5 @@
+use (import "./common.ks").*;
+
 use std.collections.Queue;
 
 module:

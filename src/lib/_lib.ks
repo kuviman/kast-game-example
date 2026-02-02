@@ -1,21 +1,17 @@
-include "./la.ks";
-const js = include "./js.ks";
-const web = include "./web.ks";
-const gl = include "./gl/gl.ks";
-const ugli = include "./ugli.ks";
-const obj = include "./obj.ks";
+module:
 
-include "./common.ks";
+const la = import "./la.ks";
+use la.*;
 
-const geng = include "./geng.ks";
-const input = include "./input.ks";
-const audio = include "./audio.ks";
-const font = include "./font.ks";
+const js = import "./js.ks";
+const web = import "./web.ks";
+const gl = import "./gl/gl.ks";
+const ugli = import "./ugli.ks";
+const obj = import "./obj.ks";
 
-@native (
-    "(()=>{"
-    + std.fs.read_file(
-        std.path.dirname(__FILE__) + "/runtime.js"
-    )
-    + "})()"
-);
+use (import "./common.ks").*;
+
+const geng = import "./geng.ks";
+const input = import "./input.ks";
+const audio = import "./audio.ks";
+const font = import "./font.ks";

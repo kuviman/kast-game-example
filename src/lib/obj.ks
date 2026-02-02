@@ -1,3 +1,5 @@
+use (import "./la.ks").*;
+
 module:
 
 const Vertex = newtype {

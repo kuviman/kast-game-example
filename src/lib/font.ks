@@ -1,3 +1,9 @@
+use (import "./common.ks").*;
+const gl = import "./gl/gl.ks";
+const ugli = import "./ugli.ks";
+const geng = import "./geng.ks";
+use std.collections.Map;
+
 module:
 
 const TilePos = Vec2;
