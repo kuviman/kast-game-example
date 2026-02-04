@@ -389,6 +389,42 @@ const Vertex = [Self] newtype {
     .init_fields :: (&List.t[Self], (String, VertexBuffer.Field) -> ()) -> (),
 };
 
+const Vertex_derive = (ty :: Type) -> std.Ast => @cfg (
+    | target.name == "interpreter" => match std.reflection.type_info(ty) with (
+        | :Tuple { .unnamed, .named } => (
+            match unnamed with (
+                | :Nil => ()
+                | :Cons _ => panic("Expected zero unnamed fields")
+            );
+            const f = `(f);
+            const data = `(data);
+            const Foo = (
+            module:
+                const init_fields = (fields) => match fields with (
+                    | :Nil => `()
+                    | :Cons { .value = { name, ty }, .tail } => (
+                        let name_ident = std.Ast.ident(name);
+                        let tail = init_fields(tail);
+                        `(
+                            $f(name, VertexBuffer.init_field($data, v => v^.$name_ident));
+                            $tail
+                        )
+                    )
+                );
+            );
+            `(
+                impl ty as Vertex = {
+                    .init_fields = ($data, $f) => (
+                        $(Foo.init_fields(named));
+                    ),
+                };
+            )
+        )
+        | _ => panic("Can't derive vertex")
+    )
+    | true => panic("Only usable at comptime")
+);
+
 const VertexBuffer = (
     module:
     

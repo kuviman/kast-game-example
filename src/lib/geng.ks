@@ -9,12 +9,7 @@ const Vertex = newtype {
     .a_uv :: Vec2,
 };
 
-impl Vertex as ugli.Vertex = {
-    .init_fields = (data, f) => (
-        f("a_pos", ugli.VertexBuffer.init_field(data, v => v^.a_pos));
-        f("a_uv", ugli.VertexBuffer.init_field(data, v => v^.a_uv));
-    ),
-};
+include_ast ugli.Vertex_derive(Vertex);
 
 const ContextT = newtype {
     .canvas :: web.HtmlCanvasElement,
