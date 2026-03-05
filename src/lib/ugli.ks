@@ -3,7 +3,7 @@ const js = import "./js.ks";
 const web = import "./web.ks";
 const gl = import "./gl/gl.ks";
 
-use std.collections.Map;
+use std.collections.OrdMap;
 
 @syntax "js_call" 30 @wrap never = "@js_call" " " js _=(@wrap if_any "(" ""/"\n\t" args:any ""/"\\\n" ")");
 impl syntax (@js_call js(args)) = `(
@@ -58,8 +58,8 @@ const UniformInfo = newtype {
 const Program = newtype {
     .ctx :: gl.ContextT,
     .handle :: gl.Program,
-    .attributes :: Map.t[String, AttributeInfo],
-    .uniforms :: Map.t[String, UniformInfo],
+    .attributes :: OrdMap.t[String, AttributeInfo],
+    .uniforms :: OrdMap.t[String, UniformInfo],
 };
 
 impl Program as module = (
@@ -81,7 +81,7 @@ impl Program as module = (
             panic("Program link failed: " + log);
         );
         let active_attributes = gl.get_program_parameter_int(program, gl.ACTIVE_ATTRIBUTES);
-        let mut attributes = Map.create();
+        let mut attributes = OrdMap.new();
         for index in 0..active_attributes do (
             let active_info = gl.get_active_attrib(program, index);
             if active_info.size != 1 then (
@@ -92,10 +92,10 @@ impl Program as module = (
                 .raw = active_info,
                 .index,
             };
-            Map.add(&mut attributes, attribute_info.raw.name, attribute_info);
+            OrdMap.add(&mut attributes, attribute_info.raw.name, attribute_info);
         );
         let active_uniforms = gl.get_program_parameter_int(program, gl.ACTIVE_UNIFORMS);
-        let mut uniforms = Map.create();
+        let mut uniforms = OrdMap.new();
         for index in 0..active_uniforms do (
             let active_info = gl.get_active_uniform(program, index);
             if active_info.size != 1 then (
@@ -109,7 +109,7 @@ impl Program as module = (
                 .location,
                 .index,
             };
-            Map.add(&mut uniforms, uniform_info.raw.name, uniform_info);
+            OrdMap.add(&mut uniforms, uniform_info.raw.name, uniform_info);
         );
         {
             .ctx,
@@ -228,7 +228,7 @@ const VertexAttributeType = newtype {
 
 const VertexAttribute = [Self] newtype {
     .@"type" :: VertexAttributeType,
-    .construct_data :: &List.t[Self] -> js.Any,
+    .construct_data :: &ArrayList.t[Self] -> js.Any,
 };
 
 impl Vec2 as VertexAttribute = {
@@ -239,7 +239,7 @@ impl Vec2 as VertexAttribute = {
     },
     .construct_data = data => (
         let list = js.List.init();
-        for &{ x, y } in List.iter(data) do (
+        for &{ x, y } in ArrayList.iter(data) do (
             list |> js.List.push(x);
             list |> js.List.push(y);
         );
@@ -255,7 +255,7 @@ impl Vec3 as VertexAttribute = {
     },
     .construct_data = data => (
         let list = js.List.init();
-        for &{ x, y, z } in List.iter(data) do (
+        for &{ x, y, z } in ArrayList.iter(data) do (
             list |> js.List.push(x);
             list |> js.List.push(y);
             list |> js.List.push(z);
@@ -272,7 +272,7 @@ impl Vec4 as VertexAttribute = {
     },
     .construct_data = data => (
         let list = js.List.init();
-        for &{ x, y, z, w } in List.iter(data) do (
+        for &{ x, y, z, w } in ArrayList.iter(data) do (
             list |> js.List.push(x);
             list |> js.List.push(y);
             list |> js.List.push(z);
@@ -378,7 +378,7 @@ const set_uniform = [T] (
     state :: &mut DrawState,
 ) -> () => with_return (
     let ctx = program.ctx;
-    let uniform_info = match &program.uniforms |> Map.get(name) with (
+    let uniform_info = match &program.uniforms |> OrdMap.get(name) with (
         | :Some (info) => info
         | :None => return
     );
@@ -386,7 +386,7 @@ const set_uniform = [T] (
 );
 
 const Vertex = [Self] newtype {
-    .init_fields :: (&List.t[Self], (String, VertexBuffer.Field) -> ()) -> (),
+    .init_fields :: (&ArrayList.t[Self], (String, VertexBuffer.Field) -> ()) -> (),
 };
 
 const Vertex_derive = (ty :: Type) -> std.Ast => @cfg (
@@ -436,28 +436,28 @@ const VertexBuffer = (
     };
     
     const t = [V] newtype {
-        .fields :: Map.t[String, Field],
+        .fields :: OrdMap.t[String, Field],
     };
     
-    const init = [V] (data :: &List.t[V]) -> t[V] => (
-        let mut fields = Map.create();
+    const init = [V] (data :: &ArrayList.t[V]) -> t[V] => (
+        let mut fields = OrdMap.new();
         (V as Vertex).init_fields(
             data,
             (name, field) => (
-                Map.add(&mut fields, name, field);
+                OrdMap.add(&mut fields, name, field);
             )
         );
         { .fields }
     );
     
     const init_field = [V, T] (
-        data :: &List.t[V],
+        data :: &ArrayList.t[V],
         get :: &V -> T,
     ) -> Field => (
-        let mut field_data = List.create();
-        for vertex in List.iter(data) do (
+        let mut field_data = ArrayList.new();
+        for vertex in ArrayList.iter(data) do (
             let field = get(vertex);
-            &mut field_data |> List.push_back(field);
+            &mut field_data |> ArrayList.push_back(field);
         );
         let field_data = (T as VertexAttribute).construct_data(&field_data);
         
@@ -482,8 +482,8 @@ const set_vertex_data_source = [V] (
     buffer :: VertexBuffer.t[V],
 ) -> () => (
     let ctx = program.ctx;
-    for &{ .key = name, .value = field } in &buffer.fields |> Map.iter do (
-        let attribute_info = match &program.attributes |> Map.get(name) with (
+    for &{ .key = name, .value = field } in &buffer.fields |> OrdMap.iter do (
+        let attribute_info = match &program.attributes |> OrdMap.get(name) with (
             | :Some (info) => info
             | :None => continue
         );

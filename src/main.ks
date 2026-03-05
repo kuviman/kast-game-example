@@ -1,13 +1,40 @@
-use std.collections.Map;
+use std.collections.OrdMap;
 use (import "lib/_lib.ks").*;
 
 # geng.init :: () with (Allocator, Async) -> () with (geng.Context, gl.Context);
+# geng.init :: [C] () -> () with C -> C | geng.Ctx | gl.Ctx
+# with ...geng.init();
 let { .geng = geng_ctx, .gl = gl_ctx } = geng.init();
 
 with geng.Context = geng_ctx;
 with gl.Context = gl_ctx;
+
 with input.Context = input.init(geng_ctx.canvas);
 with audio.Context = audio.init();
+
+const Assets = newtype {
+    .music :: audio.Buffer,
+    .sfx :: {
+        .jump :: audio.Buffer,
+        .hit :: audio.Buffer,
+        .pickup_star :: audio.Buffer,
+    },
+    .font :: font.Font,
+    .shaders :: {
+        .background :: ugli.Program,
+    },
+    .textures :: {
+        .player :: ugli.Texture,
+        .enemy :: ugli.Texture,
+        .grass :: ugli.Texture,
+        .clouds :: ugli.Texture,
+        .play :: ugli.Texture,
+        .star :: ugli.Texture,
+        .fullscreen :: ugli.Texture,
+        .mute :: ugli.Texture,
+        .muted :: ugli.Texture,
+    },
+};
 
 let assets = (
     module:
@@ -131,12 +158,12 @@ impl State as module = (
     
     const init = () -> State => {
         .player = :None,
-        .enemies = Treap.create(),
+        .enemies = Treap.new(),
         .camera = {
             .pos = { 0, (GROUND + MAX_HEIGHT) / 2 },
             .fov = FOV,
         },
-        .stars = Treap.create(),
+        .stars = Treap.new(),
         .next_spawn = 0,
         .score = 0,
         .play_button_pos = ZERO_QUAD_POS,
@@ -302,7 +329,7 @@ impl State as module = (
             );
         );
         let update_collection = (collection, entity_type) => (
-            let mut to_despawn = List.create();
+            let mut to_despawn = ArrayList.new();
             for { i, entity } in Treap.iter_mut(collection) |> std.iter.enumerate do (
                 entity |> Entity.update(dt);
                 if state^.player is :Some (ref player_entity) then (
@@ -313,7 +340,7 @@ impl State as module = (
                                 audio.play(assets.sfx.hit);
                             )
                             | :Star => (
-                                List.push_back(&mut to_despawn, i);
+                                ArrayList.push_back(&mut to_despawn, i);
                                 audio.play(assets.sfx.pickup_star);
                                 state^.score += 1;
                             )
@@ -321,7 +348,7 @@ impl State as module = (
                     );
                 );
             );
-            const pop_back = [T] (a :: &mut List.t[T]) -> Option.t[T] => (
+            const pop_back = [T] (a :: &mut ArrayList.t[T]) -> Option.t[T] => (
                 let length = Treap.length(&a^.inner);
                 if length == 0 then :None else (
                     { a^.inner, (let node) } = Treap.split_at(a^.inner, Treap.length(&a^.inner) - 1);

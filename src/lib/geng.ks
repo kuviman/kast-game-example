@@ -4,6 +4,8 @@ const ugli = import "./ugli.ks";
 
 module:
 
+const asset = import "./asset.ks";
+
 const Vertex = newtype {
     .a_pos :: Vec2,
     .a_uv :: Vec2,
@@ -54,29 +56,29 @@ const init = () -> { .geng :: ContextT, .gl :: gl.ContextT } => (
             ugli.Program.init(vertex_shader, fragment_shader)
         ),
         .buffer = (
-            let mut data :: List.t[Vertex] = List.create();
-            List.push_back(
+            let mut data :: ArrayList.t[Vertex] = ArrayList.new();
+            ArrayList.push_back(
                 &mut data,
                 {
                     .a_pos = { -1, -1 },
                     .a_uv = { 0, 0 },
                 },
             );
-            List.push_back(
+            ArrayList.push_back(
                 &mut data,
                 {
                     .a_pos = { +1, -1 },
                     .a_uv = { 1, 0 },
                 },
             );
-            List.push_back(
+            ArrayList.push_back(
                 &mut data,
                 {
                     .a_pos = { +1, +1 },
                     .a_uv = { 1, 1 },
                 },
             );
-            List.push_back(
+            ArrayList.push_back(
                 &mut data,
                 {
                     .a_pos = { -1, +1 },

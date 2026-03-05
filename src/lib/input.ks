@@ -21,7 +21,7 @@ const ContextT = newtype {
 const Context = @context ContextT;
 
 const init = (canvas :: web.HtmlCanvasElement) -> ContextT => (
-    let mut events = Queue.create();
+    let mut events = Queue.new();
     let runtime = (@native "Runtime.input.init")(
         .canvas,
         .mouse_press = (e :: raw.MouseEvent) => (

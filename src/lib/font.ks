@@ -2,7 +2,7 @@ use (import "./common.ks").*;
 const gl = import "./gl/gl.ks";
 const ugli = import "./ugli.ks";
 const geng = import "./geng.ks";
-use std.collections.Map;
+use std.collections.OrdMap;
 
 module:
 
@@ -31,7 +31,7 @@ const Font = newtype {
     .config :: Config,
     .unit_space_size :: Float32,
     .texture :: ugli.Texture,
-    .chars :: Map.t[Char, UvRect],
+    .chars :: OrdMap.t[Char, UvRect],
     .program :: ugli.Program,
 };
 
@@ -48,7 +48,7 @@ impl Font as module = (
     const load = (path :: String) -> Font => (
         let config :: Config = fetch_string(path + "/config.json") |> js.json_parse;
         let texture = geng.load_texture(path + "/texture.png", :Nearest);
-        let mut chars = Map.create();
+        let mut chars = OrdMap.new();
         let tile_size_uv = Vec2.vdiv(config.tile_size, texture.size);
         let uv_rect = (tile_pos :: Vec2) -> UvRect => {
             .pos = Vec2.vdiv(Vec2.vmul(tile_pos, config.tile_size), texture.size),
@@ -62,7 +62,7 @@ impl Font as module = (
             };
             # dbg.print(.c, .tile_pos, .uv_rect = uv_rect(tile_pos));
             &mut chars
-                |> Map.add(c, uv_rect(tile_pos));
+                |> OrdMap.add(c, uv_rect(tile_pos));
         );
         for { c, tile_pos } in config.chars |> js.Obj.iter do (
             add_c(c |> single_char, tile_pos);
@@ -131,7 +131,7 @@ impl Font as module = (
                 pos.0 += font^.unit_space_size * size;
                 continue;
             );
-            match &font^.chars |> Map.get(c) with (
+            match &font^.chars |> OrdMap.get(c) with (
                 | :None => panic("Char " + to_string(c) + " is not in font")
                 | :Some (&uv) => (
                     program |> ugli.set_uniform("u_uv_rect_pos", uv.pos, draw_state);
