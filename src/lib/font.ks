@@ -1,7 +1,7 @@
 use (import "./common.ks").*;
 const gl = import "./gl/gl.ks";
 const ugli = import "./ugli.ks";
-const geng = import "./geng.ks";
+const geng = import "./geng/_lib.ks";
 use std.collections.OrdMap;
 
 module:

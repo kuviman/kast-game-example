@@ -1,10 +1,12 @@
-use (import "./common.ks").*;
-const gl = import "./gl/gl.ks";
-const ugli = import "./ugli.ks";
+use (import "../common.ks").*;
+const gl = import "../gl/gl.ks";
+const ugli = import "../ugli.ks";
 
 module:
 
 const asset = import "./asset.ks";
+const audio = import "./audio.ks";
+const input = import "./input.ks";
 
 const Vertex = newtype {
     .a_pos :: Vec2,

@@ -11,7 +11,5 @@ const obj = import "./obj.ks";
 
 use (import "./common.ks").*;
 
-const geng = import "./geng.ks";
-const input = import "./input.ks";
-const audio = import "./audio.ks";
+const geng = import "./geng/_lib.ks";
 const font = import "./font.ks";

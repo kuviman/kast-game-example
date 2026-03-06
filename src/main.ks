@@ -9,21 +9,31 @@ let { .geng = geng_ctx, .gl = gl_ctx } = geng.init();
 with geng.Context = geng_ctx;
 with gl.Context = gl_ctx;
 
-with input.Context = input.init(geng_ctx.canvas);
-with audio.Context = audio.init();
+with geng.input.Context = geng.input.init(geng_ctx.canvas);
+with geng.audio.Context = geng.audio.init();
 
-const Assets = newtype {
-    .music :: audio.Buffer,
-    .sfx :: {
-        .jump :: audio.Buffer,
-        .hit :: audio.Buffer,
-        .pickup_star :: audio.Buffer,
-    },
-    .font :: font.Font,
-    .shaders :: {
+const Assets = (
+    module:
+    
+    const t = newtype {
+        .music :: geng.audio.Buffer,
+        .sfx :: Sfx,
+        .font :: font.Font,
+        .shaders :: Shaders,
+        .textures :: Textures,
+    };
+    
+    const Shaders = newtype {
         .background :: ugli.Program,
-    },
-    .textures :: {
+    };
+    
+    const Sfx = newtype {
+        .jump :: geng.audio.Buffer,
+        .hit :: geng.audio.Buffer,
+        .pickup_star :: geng.audio.Buffer,
+    };
+    
+    const Textures = newtype {
         .player :: ugli.Texture,
         .enemy :: ugli.Texture,
         .grass :: ugli.Texture,
@@ -33,14 +43,21 @@ const Assets = newtype {
         .fullscreen :: ugli.Texture,
         .mute :: ugli.Texture,
         .muted :: ugli.Texture,
-    },
-};
+    };
+);
+
+# include_ast geng.asset.derive_Load(Assets.t);
+# include_ast geng.asset.derive_Load(Assets.Shaders);
+# include_ast geng.asset.derive_Load(Assets.Sfx);
+# include_ast geng.asset.derive_Load(Assets.Textures);
+
+# let assets = (Assets.t as geng.asset.Load).load("assets");
 
 let assets = (
     module:
     
-    let music = audio.load("assets/music.wav");
-    audio.play_with(
+    let music = geng.audio.load("assets/music.wav");
+    geng.audio.play_with(
         music,
         {
             .@"loop" = true,
@@ -48,9 +65,9 @@ let assets = (
         },
     );
     let sfx = {
-        .jump = audio.load("assets/sfx/jump.wav"),
-        .hit = audio.load("assets/sfx/hit.wav"),
-        .pickup_star = audio.load("assets/sfx/pickup_star.wav"),
+        .jump = geng.audio.load("assets/sfx/jump.wav"),
+        .hit = geng.audio.load("assets/sfx/hit.wav"),
+        .pickup_star = geng.audio.load("assets/sfx/pickup_star.wav"),
     };
     let font = font.Font.load("assets/font");
     
@@ -248,7 +265,7 @@ impl State as module = (
         :None
     );
     
-    const handle_event = (state :: &mut State, event :: input.Event) => (
+    const handle_event = (state :: &mut State, event :: geng.input.Event) => (
         match event with (
             | :PointerPress { .pos } => (
                 match what_is_clicked(&state^, pos) with (
@@ -262,7 +279,7 @@ impl State as module = (
                     )
                     | :Some (:Mute) => (
                         muted = not muted;
-                        audio.set_master_volume(if muted then 0 else 1);
+                        geng.audio.set_master_volume(if muted then 0 else 1);
                     )
                     | :None => ()
                 );
@@ -296,9 +313,9 @@ impl State as module = (
         if state^.player is :Some (ref mut player) then (
             player^.vel.0 = min(player^.vel.0 + PLAYER_ACCEL * dt, PLAYER_SPEED);
             let up = (
-                input.Key.is_pressed(:Space)
-                or input.Key.is_pressed(:ArrowUp)
-                or input.is_any_pointer_pressed()
+                geng.input.Key.is_pressed(:Space)
+                or geng.input.Key.is_pressed(:ArrowUp)
+                or geng.input.is_any_pointer_pressed()
             );
             player^.vel.1 = clamp(
                 player^.vel.1 + (if up then +1 else -1) * PLAYER_ACCEL * dt,
@@ -307,7 +324,7 @@ impl State as module = (
             );
             if up and player^.on_ground then (
                 player^.vel.1 = JUMP_SPEED;
-                audio.play(assets.sfx.jump);
+                geng.audio.play(assets.sfx.jump);
             );
             player |> Entity.update(dt);
             if player^.pos.1 < GROUND + player^.half_size.1 then (
@@ -337,11 +354,11 @@ impl State as module = (
                         match entity_type with (
                             | :Enemy => (
                                 state^.player = :None;
-                                audio.play(assets.sfx.hit);
+                                geng.audio.play(assets.sfx.hit);
                             )
                             | :Star => (
                                 ArrayList.push_back(&mut to_despawn, i);
-                                audio.play(assets.sfx.pickup_star);
+                                geng.audio.play(assets.sfx.pickup_star);
                                 state^.score += 1;
                             )
                         );
@@ -509,7 +526,7 @@ loop (
         t = new_t;
         dt
     );
-    for event in input.iter_events() do (
+    for event in geng.input.iter_events() do (
         State.handle_event(&mut state, event);
     );
     State.update(&mut state, dt);

@@ -1,3 +1,5 @@
+const asset = import "./asset.ks";
+
 module:
 
 const ContextT = @opaque_type;
@@ -42,3 +44,8 @@ const set_master_volume = (volume :: Float64) -> () => (
 );
 
 const Buffer = @opaque_type;
+
+impl Buffer as asset.Load = {
+    .load,
+    .default_ext = :Some "wav",
+};

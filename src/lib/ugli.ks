@@ -398,24 +398,18 @@ const Vertex_derive = (ty :: Type) -> std.Ast => @cfg (
             );
             const f = `(f);
             const data = `(data);
-            const Foo = (
-            module:
-                const init_fields = (fields) => match fields with (
-                    | :Nil => `()
-                    | :Cons { .value = { name, ty }, .tail } => (
-                        let name_ident = std.Ast.ident(name);
-                        let tail = init_fields(tail);
-                        `(
-                            $f(name, VertexBuffer.init_field($data, v => v^.$name_ident));
-                            $tail
-                        )
-                    )
+            let mut init_fields = `();
+            for &{ name, field_ty } in std.collections.SList.iter(&named) do (
+                let name_ident = std.Ast.ident(name);
+                init_fields = `(
+                    $init_fields;
+                    $f(name, VertexBuffer.init_field($data, v => v^.$name_ident));
                 );
             );
             `(
                 impl ty as Vertex = {
                     .init_fields = ($data, $f) => (
-                        $(Foo.init_fields(named));
+                        $init_fields
                     ),
                 };
             )
