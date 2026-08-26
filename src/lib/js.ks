@@ -1,32 +1,23 @@
 use (import "./la.ks").*;
 
-@syntax "js_call" 30 @wrap never = "@js_call" " " js _=(@wrap if_any "(" ""/"\n\t" args:any ""/"\\\n" ")");
-impl syntax (@js_call js(args)) = `(
-    (@native ("async(ctx,...args)=>{return await(" + $js + ")(...args)}"))($args)
-);
-@syntax "js_call_method" 30 @wrap never = "@js_call" " " obj "." js _=(@wrap if_any "(" ""/"\n\t" args:any ""/"\\\n" ")");
-impl syntax (@js_call obj.js(args)) = `(
-    (@native ("async(ctx,o,...args)=>{return await o." + $js + "(...args)}"))($obj, ...{ $args })
-);
-
 module:
 
 const Any = @opaque_type;
 
-const unsafe_cast = [T, U] (a :: T) -> U => (
-    @js_call "x=>x"(a)
+const unsafe_cast = [T, U] (x :: T) -> U => (
+    @native "\(x)"
 );
 
-const from_any = [T] (any :: Any) -> T => (
-    @js_call "x=>x"(any)
+const from_any = [T] (x :: Any) -> T => (
+    @native "\(x)"
 );
 
-const into_any = [T] (any :: T) -> Any => (
-    @js_call "x=>x"(any)
+const into_any = [T] (x :: T) -> Any => (
+    @native "\(x)"
 );
 
 const is_null = (x :: Any) -> Bool => (
-    @js_call "x=>(x===null)"(x)
+    @native "\(x) === null"
 );
 
 const check_null = [T] (a :: Any) -> Option.t[T] => (
@@ -46,7 +37,7 @@ const List = (
         @native "[]"
     );
     const push = [T] (list :: t[T], x :: T) -> () => (
-        @js_call list."push"(x)
+        @native "\(list).push(\(x))"
     );
     const iter = [T] (list :: t[T]) -> std.iter.Iterable[T] => {
         .iter = f => (
@@ -74,7 +65,7 @@ const Obj = (
 );
 
 const json_parse = [T] (json :: String) -> T => (
-    @js_call "JSON.parse"(json)
+    @native "JSON.parse(\(json))"
 );
 
 const new_float32_array = (data :: List.t[Float32]) -> Any => (

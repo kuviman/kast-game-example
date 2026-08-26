@@ -3,7 +3,7 @@
 
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
-    kast.url = "github:kast-lang/kast";
+    kast.url = "github:kast-lang/kast/bootstrap-ocaml";
     # kast.url = "git+file:/home/kuviman/projects/kast-lang/kast";
     flake-utils.url = "github:numtide/flake-utils";
   };
@@ -14,7 +14,8 @@
         overlays = [ ];
         pkgs = import inputs.nixpkgs { inherit system overlays; };
         kast = inputs.kast.packages.${system}.default;
-      in with pkgs; {
+      in
+      with pkgs; {
         devShells.default = mkShell {
           packages = [
             (pkgs.writeShellScriptBin "kast" ''
@@ -22,7 +23,7 @@
                 rlwrap ${kast}/bin/kast "$@"
             '')
             rlwrap
-            nixfmt-classic
+            nixfmt
             nodejs
             just
             caddy

@@ -366,11 +366,10 @@ impl State as module = (
                 );
             );
             const pop_back = [T] (a :: &mut ArrayList.t[T]) -> Option.t[T] => (
-                let length = Treap.length(&a^.inner);
-                if length == 0 then :None else (
-                    { a^.inner, (let node) } = Treap.split_at(a^.inner, Treap.length(&a^.inner) - 1);
-                    let :Node (data) = node;
-                    :Some (data.value)
+                if ArrayList.length(&a^) == 0 then (
+                    :None
+                ) else (
+                    :Some (a |> ArrayList.pop_back)
                 )
             );
             

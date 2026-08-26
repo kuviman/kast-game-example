@@ -5,15 +5,6 @@ const gl = import "./gl/gl.ks";
 
 use std.collections.OrdMap;
 
-@syntax "js_call" 30 @wrap never = "@js_call" " " js _=(@wrap if_any "(" ""/"\n\t" args:any ""/"\\\n" ")");
-impl syntax (@js_call js(args)) = `(
-    (@native ("async(ctx,...args)=>{return await(" + $js + ")(...args)}"))($args)
-);
-@syntax "js_call_method" 30 @wrap never = "@js_call" " " obj "." js _=(@wrap if_any "(" ""/"\n\t" args:any ""/"\\\n" ")");
-impl syntax (@js_call obj.js(args)) = `(
-    (@native ("async(ctx,o,...args)=>{return await o." + $js + "(...args)}"))($obj, ...{ $args })
-);
-
 module:
 
 const clear = (color :: Vec4) => (
@@ -312,7 +303,7 @@ impl Float32 as Uniform = {
     .set = (location, x, state) => (
         let ctx = (@current gl.Context);
         let list = js.List.init();
-        @js_call ctx."uniform1f"(location, x);
+        @native "\(ctx).uniform1f(\(location), \(x))";
     ),
 };
 
@@ -321,7 +312,7 @@ impl Vec2 as Uniform = {
         let ctx = (@current gl.Context);
         let list = js.List.init();
         let { x, y } = value;
-        @js_call ctx."uniform2f"(location, x, y);
+        @native "\(ctx).uniform2f(\(location), \(x), \(y))";
     ),
 };
 
@@ -330,7 +321,7 @@ impl Vec3 as Uniform = {
         let ctx = (@current gl.Context);
         let list = js.List.init();
         let { x, y, z } = value;
-        @js_call ctx."uniform3f"(location, x, y, z);
+        @native "\(ctx).uniform3f(\(location), \(x), \(y), \(z))";
     ),
 };
 
@@ -339,7 +330,7 @@ impl Vec4 as Uniform = {
         let ctx = (@current gl.Context);
         let list = js.List.init();
         let { x, y, z, w } = value;
-        @js_call ctx."uniform4f"(location, x, y, z, w);
+        @native "\(ctx).uniform4f(\(location), \(x), \(y), \(z), \(w))";
     ),
 };
 
@@ -357,16 +348,16 @@ impl Mat3 as Uniform = {
         add(row => row.1);
         add(row => row.2);
         let data = js.new_float32_array(list);
-        @js_call ctx."uniformMatrix3fv"(location, false, data);
+        @native "\(ctx).uniformMatrix3fv(\(location), \(false), \(data))";
     ),
 };
 
 impl Texture as Uniform = {
     .set = (location, texture, state) => (
         let ctx = (@current gl.Context);
-        @js_call ctx."activeTexture"(gl.TEXTURE0 + state^.active_texture_index);
+        @native "\(ctx).activeTexture(\(gl.TEXTURE0 + state^.active_texture_index))";
         gl.bind_texture(gl.TEXTURE_2D, texture.handle);
-        @js_call ctx."uniform1i"(location, state^.active_texture_index);
+        @native "\(ctx).uniform1i(\(location), \(state^.active_texture_index))";
         state^.active_texture_index += 1;
     ),
 };

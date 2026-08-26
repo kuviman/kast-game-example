@@ -1,15 +1,6 @@
 const js = import "../js.ks";
 const web = import "../web.ks";
 
-@syntax "js_call" 30 @wrap never = "@js_call" " " js _=(@wrap if_any "(" ""/"\n\t" args:any ""/"\\\n" ")");
-impl syntax (@js_call js(args)) = `(
-    (@native ("async(ctx,...args)=>{return await(" + $js + ")(...args)}"))($args)
-);
-@syntax "js_call_method" 30 @wrap never = "@js_call" " " obj "." js _=(@wrap if_any "(" ""/"\n\t" args:any ""/"\\\n" ")");
-impl syntax (@js_call obj.js(args)) = `(
-    (@native ("async(ctx,o,...args)=>{return await o." + $js + "(...args)}"))($obj, ...{ $args })
-);
-
 module:
 
 include "./types.ks";
@@ -20,7 +11,7 @@ const Context = @context ContextT;
 
 const clear = (bits :: GLbitfield) -> () => (
     let ctx = (@current Context);
-    @js_call ctx."clear"(bits)
+    @native "\(ctx).clear(\(bits))"
 );
 
 const clear_color = (
@@ -30,12 +21,12 @@ const clear_color = (
     a :: GLclampf,
 ) -> () => (
     let ctx = (@current Context);
-    @js_call ctx."clearColor"(r, g, b, a)
+    @native "\(ctx).clearColor(\(r), \(g), \(b), \(a))"
 );
 
 const create_shader = (shader_type :: GLenum) -> Option.t[Shader] => (
     let ctx = (@current Context);
-    @js_call ctx."createShader"(shader_type)
+    (@native "\(ctx).createShader(\(shader_type))")
         |> js.check_null
 );
 
@@ -44,12 +35,12 @@ const shader_source = (
     source :: String,
 ) -> () => (
     let ctx = (@current Context);
-    @js_call ctx."shaderSource"(shader, source)
+    @native "\(ctx).shaderSource(\(shader), \(source))"
 );
 
 const compile_shader = (shader :: Shader) -> () => (
     let ctx = (@current Context);
-    @js_call ctx."compileShader"(shader)
+    @native "\(ctx).compileShader(\(shader))"
 );
 
 const get_shader_parameter_bool = (
@@ -57,17 +48,17 @@ const get_shader_parameter_bool = (
     pname :: GLenum,
 ) -> GLboolean => (
     let ctx = (@current Context);
-    @js_call ctx."getShaderParameter"(shader, pname)
+    @native "\(ctx).getShaderParameter(\(shader), \(pname))"
 );
 
 const get_shader_info_log = (shader :: Shader) -> String => (
     let ctx = (@current Context);
-    @js_call ctx."getShaderInfoLog"(shader)
+    @native "\(ctx).getShaderInfoLog(\(shader))"
 );
 
 const create_program = () -> Option.t[Program] => (
     let ctx = (@current Context);
-    @js_call ctx."createProgram"()
+    (@native "\(ctx).createProgram()")
         |> js.check_null
 );
 
@@ -76,12 +67,12 @@ const attach_shader = (
     shader :: Shader,
 ) -> () => (
     let ctx = (@current Context);
-    @js_call ctx."attachShader"(program, shader)
+    @native "\(ctx).attachShader(\(program), \(shader))"
 );
 
 const link_program = (program :: Program) -> () => (
     let ctx = (@current Context);
-    @js_call ctx."linkProgram"(program)
+    @native "\(ctx).linkProgram(\(program))"
 );
 
 const get_program_parameter_bool = (
@@ -89,7 +80,7 @@ const get_program_parameter_bool = (
     pname :: GLenum,
 ) -> GLboolean => (
     let ctx = (@current Context);
-    @js_call ctx."getProgramParameter"(program, pname)
+    @native "\(ctx).getProgramParameter(\(program), \(pname))"
 );
 
 const get_program_parameter_int = (
@@ -97,17 +88,17 @@ const get_program_parameter_int = (
     pname :: GLenum,
 ) -> GLint => (
     let ctx = (@current Context);
-    @js_call ctx."getProgramParameter"(program, pname)
+    @native "\(ctx).getProgramParameter(\(program), \(pname))"
 );
 
 const get_program_info_log = (program :: Program) -> String => (
     let ctx = (@current Context);
-    @js_call ctx."getProgramInfoLog"(program)
+    @native "\(ctx).getProgramInfoLog(\(program))"
 );
 
 const use_program = (program :: Program) -> () => (
     let ctx = (@current Context);
-    @js_call ctx."useProgram"(program)
+    @native "\(ctx).useProgram(\(program))"
 );
 
 const draw_arrays = (
@@ -116,12 +107,12 @@ const draw_arrays = (
     count :: GLsizei,
 ) -> () => (
     let ctx = (@current Context);
-    @js_call ctx."drawArrays"(mode, first, count)
+    @native "\(ctx).drawArrays(\(mode), \(first), \(count))"
 );
 
 const create_buffer = () -> Buffer => (
     let ctx = (@current Context);
-    @js_call ctx."createBuffer"()
+    @native "\(ctx).createBuffer()"
 );
 
 const bind_buffer = (
@@ -129,7 +120,7 @@ const bind_buffer = (
     buffer :: Buffer,
 ) -> () => (
     let ctx = (@current Context);
-    @js_call ctx."bindBuffer"(target, buffer)
+    @native "\(ctx).bindBuffer(\(target), \(buffer))"
 );
 
 const buffer_data = (
@@ -138,7 +129,7 @@ const buffer_data = (
     usage :: GLenum,
 ) -> () => (
     let ctx = (@current Context);
-    @js_call ctx."bufferData"(target, src_data, usage)
+    @native "\(ctx).bufferData(\(target), \(src_data), \(usage))"
 );
 
 const vertex_attrib_pointer = (
@@ -150,14 +141,21 @@ const vertex_attrib_pointer = (
     offset :: GLintptr,
 ) -> () => (
     let ctx = (@current Context);
-    @js_call ctx."vertexAttribPointer"(
-        index, size, @"type", normalized, stride, offset
-    )
+    @native ''
+        \(ctx).vertexAttribPointer(
+            \(index),
+            \(size),
+            \(@"type"),
+            \(normalized),
+            \(stride),
+            \(offset)
+        )
+    ''
 );
 
 const enable = (cap :: GLenum) -> () => (
     let ctx = (@current Context);
-    @js_call ctx."enable"(cap)
+    @native "\(ctx).enable(\(cap))"
 );
 
 const blend_color = (
@@ -167,12 +165,12 @@ const blend_color = (
     alpha :: GLclampf,
 ) -> () => (
     let ctx = (@current Context);
-    @js_call ctx."blendColor"(red, green, blue, alpha)
+    @native "\(ctx).blendColor(\(red), \(green), \(blue), \(alpha))"
 );
 
 const blend_func = (src_factor :: GLenum, dst_factor :: GLenum) -> () => (
     let ctx = (@current Context);
-    @js_call ctx."blendFunc"(src_factor, dst_factor)
+    @native "\(ctx).blendFunc(\(src_factor), \(dst_factor))"
 );
 
 const blend_func_separate = (
@@ -182,12 +180,12 @@ const blend_func_separate = (
     dst_alpha :: GLenum,
 ) -> () => (
     let ctx = (@current Context);
-    @js_call ctx."blendFuncSeparate"(src_rgb, dst_rgb, src_alpha, dst_alpha)
+    @native "\(ctx).blendFuncSeparate(\(src_rgb), \(dst_rgb), \(src_alpha), \(dst_alpha))"
 );
 
 const blend_equation = (mode :: GLenum) -> () => (
     let ctx = (@current Context);
-    @js_call ctx."blendEquation"(mode)
+    @native "\(ctx).blendEquation(\(mode))"
 );
 
 const blend_equation_separate = (
@@ -195,18 +193,18 @@ const blend_equation_separate = (
     mode_alpha :: GLenum,
 ) -> () => (
     let ctx = (@current Context);
-    @js_call ctx."blendEquationSeparate"(mode_rgb, mode_alpha)
+    @native "\(ctx).blendEquationSeparate(\(mode_rgb), \(mode_alpha))"
 );
 
 # blendEq(src * srcFactor, dst * dstFactor)
 const enable_vertex_attrib_array = (index :: GLuint) -> () => (
     let ctx = (@current Context);
-    @js_call ctx."enableVertexAttribArray"(index)
+    @native "\(ctx).enableVertexAttribArray(\(index))"
 );
 
 const disable_vertex_attrib_array = (index :: GLuint) -> () => (
     let ctx = (@current Context);
-    @js_call ctx."disableVertexAttribArray"(index)
+    @native "\(ctx).disableVertexAttribArray(\(index))"
 );
 
 const get_active_attrib = (
@@ -214,7 +212,7 @@ const get_active_attrib = (
     index :: GLuint,
 ) -> ActiveInfo => (
     let ctx = (@current Context);
-    @js_call ctx."getActiveAttrib"(program, index)
+    @native "\(ctx).getActiveAttrib(\(program), \(index))"
 );
 
 const get_active_uniform = (
@@ -222,7 +220,7 @@ const get_active_uniform = (
     index :: GLuint,
 ) -> ActiveInfo => (
     let ctx = (@current Context);
-    @js_call ctx."getActiveUniform"(program, index)
+    @native "\(ctx).getActiveUniform(\(program), \(index))"
 );
 
 const get_uniform_location = (
@@ -230,13 +228,13 @@ const get_uniform_location = (
     name :: String,
 ) -> Option.t[WebGLUniformLocation] => (
     let ctx = (@current Context);
-    @js_call ctx."getUniformLocation"(program, name)
+    (@native "\(ctx).getUniformLocation(\(program), \(name))")
         |> js.check_null
 );
 
 const create_texture = () -> WebGLTexture => (
     let ctx = (@current Context);
-    @js_call ctx."createTexture"()
+    @native "\(ctx).createTexture()"
 );
 
 const bind_texture = (
@@ -244,7 +242,7 @@ const bind_texture = (
     texture :: WebGLTexture,
 ) -> WebGLTexture => (
     let ctx = (@current Context);
-    @js_call ctx."bindTexture"(target, texture)
+    @native "\(ctx).bindTexture(\(target), \(texture))"
 );
 
 const tex_image_2d = (
@@ -256,7 +254,16 @@ const tex_image_2d = (
     source :: js.Any,
 ) -> WebGLTexture => (
     let ctx = (@current Context);
-    @js_call ctx."texImage2D"(target, level, internal_format, format, @"type", source)
+    @native ''
+        \(ctx).texImage2D(
+            \(target),
+            \(level),
+            \(internal_format),
+            \(format),
+            \(@"type"),
+            \(source)
+        )
+    ''
 );
 
 const tex_parameter_i = (
@@ -265,7 +272,7 @@ const tex_parameter_i = (
     param :: GLint,
 ) -> WebGLTexture => (
     let ctx = (@current Context);
-    @js_call ctx."texParameteri"(target, pname, param)
+    @native "\(ctx).texParameteri(\(target), \(pname), \(param))"
 );
 
 const tex_parameter_f = (
@@ -274,12 +281,12 @@ const tex_parameter_f = (
     param :: GLfloat,
 ) -> WebGLTexture => (
     let ctx = (@current Context);
-    @js_call ctx."texParameterf"(target, pname, param)
+    @native "\(ctx).texParameterf(\(target), \(pname), \(param))"
 );
 
 const generate_mipmap = (target :: GLenum) -> () => (
     let ctx = (@current Context);
-    @js_call ctx."generateMipmap"(target)
+    @native "\(ctx).generateMipmap(\(target))"
 );
 
 const pixel_store_bool = (
@@ -287,7 +294,7 @@ const pixel_store_bool = (
     value :: GLboolean,
 ) -> () => (
     let ctx = (@current Context);
-    @js_call ctx."pixelStorei"(pname, value)
+    @native "\(ctx).pixelStorei(\(pname), \(value))"
 );
 
 const Shader = @opaque_type;

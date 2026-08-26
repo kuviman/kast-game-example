@@ -1,15 +1,6 @@
 use (import "./la.ks").*;
 const js = import "./js.ks";
 
-@syntax "js_call" 30 @wrap never = "@js_call" " " js _=(@wrap if_any "(" ""/"\n\t" args:any ""/"\\\n" ")");
-impl syntax (@js_call js(args)) = `(
-    (@native ("async(ctx,...args)=>{return await(" + $js + ")(...args)}"))($args)
-);
-@syntax "js_call_method" 30 @wrap never = "@js_call" " " obj "." js _=(@wrap if_any "(" ""/"\n\t" args:any ""/"\\\n" ")");
-impl syntax (@js_call obj.js(args)) = `(
-    (@native ("async(ctx,o,...args)=>{return await o." + $js + "(...args)}"))($obj, ...{ $args })
-);
-
 module:
 
 const HtmlElement = @opaque_type;
@@ -23,25 +14,21 @@ impl HtmlCanvasElement as module = (
         canvas :: HtmlCanvasElement,
         context_type :: String,
     ) -> js.Any => (
-        @js_call canvas."getContext"(context_type)
+        @native "\(canvas).getContext(\(context_type))"
     );
     
     const set_width = (
         canvas :: HtmlCanvasElement,
         width :: Int32,
     ) -> () => (
-        @js_call "({canvas,width})=>{canvas.width=width}"(
-            { .canvas, .width }
-        )
+        @native "\(canvas).width = \(width)"
     );
     
     const set_height = (
         canvas :: HtmlCanvasElement,
         height :: Int32,
     ) -> () => (
-        @js_call "({canvas,height})=>{canvas.height=height}"(
-            { .canvas, .height }
-        )
+        @native "\(canvas).height = \(height)"
     );
 );
 
@@ -54,7 +41,7 @@ impl HtmlDocumentElement as module = (
         document :: HtmlDocumentElement,
         id :: String,
     ) -> HtmlElement => (
-        @js_call document."getElementById"(id)
+        @native "\(document).getElementById(\(id))"
     );
 );
 

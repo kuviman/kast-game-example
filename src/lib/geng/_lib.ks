@@ -29,13 +29,13 @@ const ContextT = newtype {
 const Context = @context ContextT;
 
 const init = () -> { .geng :: ContextT, .gl :: gl.ContextT } => (
-    @native (
-        "(()=>{"
-        + std.fs.read_file(
-            std.path.dirname(__FILE__) + "/runtime.js"
-        )
-        + "})()"
-    );
+    @native ''
+        (()=>{\[](
+            std.fs.read_file(
+                std.path.dirname(__FILE__) + "/runtime.js"
+            )
+        )})()
+    '';
     
     let document = web.document();
     let canvas :: web.HtmlCanvasElement = document
