@@ -15,7 +15,16 @@ build-native:
     just build-c
 
 build-c:
-    gcc -o target/compiled/main.exe target/compiled/main.c
+    gcc \
+        -lgc -lSDL3 \
+        -fsanitize=address,leak,undefined \
+        -g -O1 \
+        -o target/compiled/main.exe \
+        target/compiled/main.c
+
+run:
+    just build-native
+    ./target/compiled/main.exe
 
 build-watch:
     #!/usr/bin/env bash

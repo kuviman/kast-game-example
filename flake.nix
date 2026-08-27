@@ -14,6 +14,7 @@
         overlays = [ ];
         pkgs = import inputs.nixpkgs { inherit system overlays; };
         kast = inputs.kast.packages.${system}.default;
+        clang = pkgs.clang_22;
       in
       with pkgs; {
         devShells.default = mkShell {
@@ -28,7 +29,12 @@
             just
             caddy
             inotify-tools
+            sdl3
+            boehmgc
+            clang
           ];
+          # Since I dont have cmake or whatever
+          CLANGD_FLAGS = "--query-driver=${clang}/bin/clang*";
         };
       });
 }
