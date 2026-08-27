@@ -8,7 +8,7 @@ build:
         src/main.ks
 
 build-native:
-    kast compile \
+    kastc compile \
         --target c \
         --output target/compiled/main.c \
         src/main.ks
@@ -16,7 +16,8 @@ build-native:
 
 build-c:
     gcc \
-        -lgc -lSDL3 \
+        -lgc -lSDL3 -lGL -lGLEW \
+        -Wfatal-errors \
         -fsanitize=address,leak,undefined \
         -g -O1 \
         -o target/compiled/main.exe \

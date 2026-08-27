@@ -4,6 +4,7 @@
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
     kast.url = "github:kast-lang/kast/bootstrap-ocaml";
+    kast-selfhost.url = "git+https://github.com/kast-lang/kast?rev=9cbd998cdb9adf1e3b25cf9599f1e26743f80016&submodules=1";
     # kast.url = "git+file:/home/kuviman/projects/kast-lang/kast";
     flake-utils.url = "github:numtide/flake-utils";
   };
@@ -14,15 +15,23 @@
         overlays = [ ];
         pkgs = import inputs.nixpkgs { inherit system overlays; };
         kast = inputs.kast.packages.${system}.default;
+        kast-selfhost = pkgs.writeShellApplication {
+          name = "kast";
+          runtimeInputs = [ pkgs.nodejs ];
+          text = ''
+            node ${inputs.kast-selfhost.packages.${system}.kast-js}/kast.mjs "$@"
+          '';
+        };
         clang = pkgs.clang_22;
       in
       with pkgs; {
         devShells.default = mkShell {
           packages = [
-            (pkgs.writeShellScriptBin "kast" ''
+            (pkgs.writeShellScriptBin "kastc" ''
               systemd-run --user --scope -p MemoryMax=10G \
                 rlwrap ${kast}/bin/kast "$@"
             '')
+            kast-selfhost
             rlwrap
             nixfmt
             nodejs
@@ -31,11 +40,14 @@
             inotify-tools
             sdl3
             boehmgc
+            libGL
+            glew
             clang
             valgrind
           ];
           # Since I dont have cmake or whatever
           CLANGD_FLAGS = "--query-driver=${clang}/bin/clang*";
+          KAST_PATH = "./kast_path";
         };
       });
 }
