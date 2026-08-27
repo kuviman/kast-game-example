@@ -24,7 +24,8 @@ build-c:
 
 run:
     just build-native
-    ./target/compiled/main.exe
+    LSAN_OPTIONS='suppresions=suppr.txt' \
+        ./target/compiled/main.exe
 
 build-watch:
     #!/usr/bin/env bash

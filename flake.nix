@@ -32,6 +32,7 @@
             sdl3
             boehmgc
             clang
+            valgrind
           ];
           # Since I dont have cmake or whatever
           CLANGD_FLAGS = "--query-driver=${clang}/bin/clang*";
