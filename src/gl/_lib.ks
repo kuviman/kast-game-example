@@ -206,15 +206,26 @@ const get_uniform_location = (
         :Some location
     )
 );
-(#
+
 const draw_arrays = (
     mode :: GLenum,
     first :: GLint,
     count :: GLsizei,
 ) -> () => (
     let ctx = (@current Context);
-    @native "glDrawArrays(\(mode), \(first), \(count))"
+    @native "glDrawArrays(\(mode), \(first), \(count))";
 );
+
+const viewport = (
+    x :: GLint,
+    y :: GLint,
+    width :: GLsizei,
+    height :: GLsizei,
+) => (
+    @native "glViewport(\(x), \(y), \(width), \(height))";
+);
+
+(#
 
 const create_buffer = () -> Buffer => (
     let ctx = (@current Context);

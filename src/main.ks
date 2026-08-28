@@ -43,7 +43,11 @@ const main = () => (
                 keep_running = false;
             );
         );
+        let { width, height } = SDL.GetWindowSize(window);
+        gl.viewport(0, 0, width, height);
         ugli.clear({ 0.8, 0.8, 1, 1 });
+        ugli.Program.@"use"(program);
+        gl.draw_arrays(gl.TRIANGLES, 0, 3);
         SDL.GL_SwapWindow(window);
     # @native "SDL_RenderPresent(\(renderer))";
     );

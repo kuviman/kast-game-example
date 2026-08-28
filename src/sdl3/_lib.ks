@@ -88,3 +88,12 @@ const PollEvent = () -> Option.t[Event] => (
         :None
     )
 );
+
+const GetWindowSize = (window :: Window) -> { Int32, Int32 } => (
+    let mut width = 0;
+    let mut height = 0;
+    if @native "!SDL_GetWindowSize(\(window), \(&mut width), \(&mut height))" then (
+        throw_error("SDL_GetWindowSize");
+    );
+    { width, height }
+);

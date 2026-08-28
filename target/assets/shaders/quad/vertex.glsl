@@ -1,4 +1,5 @@
 // precision highp float;
+#version 130
 
 attribute vec2 a_pos;
 attribute vec2 a_uv;
@@ -18,4 +19,6 @@ void main() {
     vec2 pos = a_pos * u_half_size + u_pos;
     vec3 screen_pos = u_projection_matrix * u_view_matrix * vec3(pos, 1.0);
     gl_Position = vec4(screen_pos.xy, 0.0, screen_pos.z);
+    v_color = vec4(gl_VertexID == 0 ? 1 : 0, gl_VertexID == 1 ? 1 : 0, gl_VertexID == 2 ? 1 : 0, 1.0);
+    gl_Position = vec4(gl_VertexID - 1, gl_VertexID == 1 ? 1.0 : -1.0, 0.0, 1.0);
 }
