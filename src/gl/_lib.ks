@@ -141,35 +141,57 @@ const use_program = (program :: Program) -> () => (
     @native "glUseProgram(\(program))";
 );
 
-const get_active_attrib = (
-    program :: Program,
-    index :: GLuint,
-) -> ActiveInfo => (
-    let ctx = (@current Context);
-    let name_buf_size :: GLsizei = 100; # TODO
-    let name_buf :: @opaque_type "GLchar*" = @native "Kast_malloc(\(name_buf_size))";
-    let mut name_length :: GLsizei = 0;
-    let mut size :: GLint = 0;
-    let mut @"type" :: GLenum = 0;
-    @native ''glGetActiveAttrib(
-            \(program),
-            \(index),
+const get_active_fn = type (
+    fn @call "C" (
+        Program,
+        GLuint,
+        GLsizei,
+        &mut GLsizei,
+        &mut GLint,
+        &mut GLenum,
+        @opaque_type "GLchar*",
+    ) -> ()
+);
+
+const get_active_impl = (
+    program :: std.Ast,
+    index :: std.Ast,
+    get_fn :: String,
+) -> std.Ast => @cfg (
+    | target.name == "interpreter" => `(
+        let ctx = (@current Context);
+        let name_buf_size :: GLsizei = 100; # TODO
+        let name_buf :: @opaque_type "GLchar*" = @native "Kast_malloc(\(name_buf_size))";
+        let mut name_length :: GLsizei = 0;
+        let mut size :: GLint = 0;
+        let mut @"type" :: GLenum = 0;
+        @native ''\[](get_fn)(
+            \($program),
+            \($index),
             \(name_buf_size),
             \(&mut name_length),
             \(&mut size),
             \(&mut @"type"),
             \(name_buf)
         )'';
-    let name = @native "(String) { .buf = \(name_buf), .length = \(name_length) }";
-    { .name, .size, .@"type" }
+        let name = @native "(String) { .buf = \(name_buf), .length = \(name_length) }";
+        { .name, .size, .@"type" }
+    )
+    | _ => panic("comptime only")
+);
+
+const get_active_attrib = (
+    program :: Program,
+    index :: GLuint,
+) -> ActiveInfo => (
+    include_ast get_active_impl(`(program), `(index), "glGetActiveAttrib")
 );
 
 const get_active_uniform = (
     program :: Program,
     index :: GLuint,
 ) -> ActiveInfo => (
-    let ctx = (@current Context);
-    @native "glGetActiveUniform(\(program), \(index))"
+    include_ast get_active_impl(`(program), `(index), "glGetActiveUniform")
 );
 
 const get_uniform_location = (

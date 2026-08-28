@@ -43,13 +43,13 @@ const compile_shader = (shader_type, source) => (
 
 const AttributeInfo = newtype {
     .raw :: gl.ActiveInfo,
-    .index :: Int32,
+    .index :: UInt32,
 };
 
 const UniformInfo = newtype {
     .raw :: gl.ActiveInfo,
     .location :: gl.UniformLocation,
-    .index :: Int32,
+    .index :: UInt32,
 };
 
 const Program = newtype {
@@ -76,7 +76,8 @@ impl Program as module = (
             let log = gl.get_program_info_log(program);
             panic("Program link failed: " + log);
         );
-        let active_attributes = gl.get_program_parameter_int(program, gl.ACTIVE_ATTRIBUTES);
+        let active_attributes = gl.get_program_parameter_int(program, gl.ACTIVE_ATTRIBUTES)
+            |> Int32_to_UInt32;
         let mut attributes = OrdMap.new();
         for index in 0..active_attributes do (
             let active_info = gl.get_active_attrib(program, index);
@@ -90,7 +91,8 @@ impl Program as module = (
             };
             OrdMap.add(&mut attributes, attribute_info.raw.name, attribute_info);
         );
-        let active_uniforms = gl.get_program_parameter_int(program, gl.ACTIVE_UNIFORMS);
+        let active_uniforms = gl.get_program_parameter_int(program, gl.ACTIVE_UNIFORMS)
+            |> Int32_to_UInt32;
         let mut uniforms = OrdMap.new();
         for index in 0..active_uniforms do (
             let active_info = gl.get_active_uniform(program, index);
