@@ -38,11 +38,11 @@ const main = () => (
     ugli.init();
     let vertex_shader = ugli.compile_shader(
         gl.VERTEX_SHADER,
-        std.fs.read_file("target/assets/shaders/quad/vertex.glsl"),
+        std.fs.read_file("assets/shaders/quad/vertex.glsl"),
     );
     let fragment_shader = ugli.compile_shader(
         gl.FRAGMENT_SHADER,
-        std.fs.read_file("target/assets/shaders/quad/fragment.glsl"),
+        std.fs.read_file("assets/shaders/quad/fragment.glsl"),
     );
     let program = ugli.Program.init(vertex_shader, fragment_shader);
 
@@ -52,11 +52,11 @@ const main = () => (
     };
     let textures :: TT = {
         .unicorn = ugli.Texture.load(
-            "target/assets/textures/unicorn.png",
+            "assets/textures/unicorn.png",
             :Nearest,
         ),
         .angry = ugli.Texture.load(
-            "target/assets/textures/angry.png",
+            "assets/textures/angry.png",
             :Nearest,
         ),
     };

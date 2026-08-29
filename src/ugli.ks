@@ -213,12 +213,15 @@ impl Texture as module = (
         filter :: Filter,
     ) -> Texture => (
         let surface = SDL.IMG.Load(path);
+        (#
         let rgba_surface = SDL.ConvertSurface(
             surface,
             @native "SDL_PIXELFORMAT_RGBA32",
         );
         SDL.DestroySurface(surface);
-        SDL.FlipSurface(rgba_surface, @native "SDL_FLIP_VERTICAL");
+#)
+        let rgba_surface = surface;
+        # SDL.FlipSurface(rgba_surface, @native "SDL_FLIP_VERTICAL");
         let texture = Texture.init(rgba_surface, filter);
         SDL.DestroySurface(rgba_surface);
         texture

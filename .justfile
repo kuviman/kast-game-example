@@ -1,20 +1,13 @@
 default:
     echo "Hi"
 
-build:
-    kast compile \
-        --target js \
-        --output target/compiled/main.mjs \
-        src/main.ks
-
-build-native:
+build-c:
     kastc compile \
         --target c \
         --output target/compiled/main.c \
         src/main.ks
-    just build-c
 
-build-c:
+build-native:
     ${CC:-gcc} \
         -lgc -lSDL3 -lSDL3_image -lGL -lGLEW \
         -Wfatal-errors \
@@ -25,37 +18,38 @@ build-c:
     # -fno-omit-frame-pointer \
 
 build-emscripten:
+    rm -rf target/web
     mkdir -p target/web
-    emcc target/compiled/main.c \
+    LDFLAGS="-sBINARYEN_EXTRA_PASSES='--spill-pointers'" \
+        emcc \
+        target/compiled/main.c \
         -o target/web/index.html \
-        -I ${BOEHMGC}/include \
-        -I ${SDL3}/include \
-        -I ${SDL3_IMAGE}/include \
+        -I ${BOEHMGC_WEB}/include \
+        -L ${BOEHMGC_WEB}/lib \
+        -lgc \
+        -I ${SDL3_WEB}/include \
+        -L ${SDL3_WEB}/lib \
+        -l SDL3 \
+        -I ${SDL3_IMAGE_WEB}/include \
+        -L ${SDL3_IMAGE_WEB}/lib \
         -Os \
-        -s USE_GLFW=3 \
-        --preload-file target/assets \
+        --use-preload-plugins \
+        --preload-file assets \
         -s TOTAL_STACK=64MB \
         -s INITIAL_MEMORY=128MB \
         -s ASSERTIONS \
-        -w \
-        -DPLATFORM_WEB
+        -w
     # --shell-file shell.html \
     # -sMAX_WEBGL_VERSION=2 \
     # -s ASYNCIFY \
 
 run:
+    just build-c
     just build-native
     LSAN_OPTIONS='suppresions=suppr.txt' \
         ./target/compiled/main.exe
 
-build-watch:
-    #!/usr/bin/env bash
-    just build
-    while inotifywait -r -e modify,create,delete,move src; do
-        sleep 0.2
-        just build
-    done
-
 serve:
-    just build
+    just build-c
+    just build-emscripten
     caddy run

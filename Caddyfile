@@ -1,5 +1,5 @@
 :8080 {
-	root * target
+	root * target/web
 	file_server
 	header {
 		Cache-Control "public, max-age=0, must-revalidate"
