@@ -134,3 +134,7 @@ const IMG = (
         surface
     );
 );
+
+const GetTicks = () -> UInt64 => (
+    @native "SDL_GetTicks()"
+);

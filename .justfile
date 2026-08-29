@@ -20,9 +20,7 @@ build-native:
 build-emscripten:
     rm -rf target/web
     mkdir -p target/web
-    LDFLAGS="-sBINARYEN_EXTRA_PASSES='--spill-pointers'" \
-        emcc \
-        target/compiled/main.c \
+    emcc target/compiled/main.c \
         -o target/web/index.html \
         -I ${BOEHMGC_WEB}/include \
         -L ${BOEHMGC_WEB}/lib \
@@ -32,16 +30,18 @@ build-emscripten:
         -l SDL3 \
         -I ${SDL3_IMAGE_WEB}/include \
         -L ${SDL3_IMAGE_WEB}/lib \
-        -Os \
+        -l SDL3_image \
+        -O0 \
         --use-preload-plugins \
         --preload-file assets \
         -s TOTAL_STACK=64MB \
         -s INITIAL_MEMORY=128MB \
         -s ASSERTIONS \
+        -s ASYNCIFY \
         -w
+    # -s BINARYEN_EXTRA_PASSES='--spill-pointers' \
     # --shell-file shell.html \
     # -sMAX_WEBGL_VERSION=2 \
-    # -s ASYNCIFY \
 
 run:
     just build-c

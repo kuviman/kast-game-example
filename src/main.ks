@@ -19,6 +19,8 @@ const Vertex = newtype {
 include_ast ugli.Vertex_derive(Vertex);
 
 const main = () => (
+    @native "{KAST_GC_ENABLED = false;}";
+    log("Initializing");
     SDL.Init(@native "SDL_INIT_VIDEO");
     let window = match SDL.CreateWindow(
         "Kast Game Example",
@@ -31,11 +33,16 @@ const main = () => (
             SDL_error("Failed to create window") |> from_never
         )
     );
+    log("Created window");
+
     let gl_context = SDL.GL_CreateContext(window);
     SDL.GL_MakeCurrent(window, gl_context);
     SDL.GL_SetSwapInterval(1);
+    log("Created GL context");
 
     ugli.init();
+    log("Initialized ugli");
+
     let vertex_shader = ugli.compile_shader(
         gl.VERTEX_SHADER,
         std.fs.read_file("assets/shaders/quad/vertex.glsl"),
@@ -45,6 +52,7 @@ const main = () => (
         std.fs.read_file("assets/shaders/quad/fragment.glsl"),
     );
     let program = ugli.Program.init(vertex_shader, fragment_shader);
+    log("Compiled shader program");
 
     const TT = newtype {
         .unicorn :: ugli.Texture,
@@ -60,6 +68,7 @@ const main = () => (
             :Nearest,
         ),
     };
+    log("Loaded textures");
 
     let quad_buffer = (
         let mut data :: ArrayList.t[Vertex] = ArrayList.new();
@@ -93,6 +102,7 @@ const main = () => (
         );
         ugli.VertexBuffer.init(&data)
     );
+    log("Vertex buffer created");
 
     let draw_quad = (
         pos :: Vec2,
@@ -127,8 +137,16 @@ const main = () => (
         .fov = 10,
     };
 
+    log("Starting main loop");
     let mut keep_running = true;
+    let mut ticks = SDL.GetTicks();
+    let mut x :: Float32 = 0;
     while keep_running do (
+        print("TICKS = " + to_string(ticks));
+        let new_ticks = SDL.GetTicks();
+        let delta_time :: Float32 = @native "(float)\(new_ticks - ticks) / 1000.0";
+        ticks = new_ticks;
+
         while SDL.PollEvent() is :Some event do (
             if @native "\(event).type == SDL_EVENT_QUIT" then (
                 keep_running = false;
@@ -138,22 +156,21 @@ const main = () => (
         gl.viewport(0, 0, width, height);
         ugli.clear({ 0.8, 0.8, 1, 1 });
 
-        let f = () => (
-            with CameraCtx = CameraUniforms.init(
-                camera,
-                .framebuffer_size = {
-                    Int32_to_Float32(width),
-                    Int32_to_Float32(height),
-                },
-            );
-
-            draw_quad({ 0, 0 }, { 1, 1 }, textures.unicorn);
-            draw_quad({ 2, 2 }, { 1, 1 }, textures.angry);
+        with CameraCtx = CameraUniforms.init(
+            camera,
+            .framebuffer_size = {
+                Int32_to_Float32(width),
+                Int32_to_Float32(height),
+            },
         );
-        f();
+
+        @native "#include <math.h>";
+        x += delta_time;
+
+        draw_quad({ @native "sin(\(x))", 0 }, { 1, 1 }, textures.unicorn);
+        draw_quad({ 2, 2 }, { 1, 1 }, textures.angry);
 
         SDL.GL_SwapWindow(window);
-    # @native "SDL_RenderPresent(\(renderer))";
     );
     log("Quitting");
     SDL.Quit();

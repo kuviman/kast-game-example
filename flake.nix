@@ -2,7 +2,7 @@
   description = "A devShell example";
 
   inputs = {
-    nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
+    # nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
     nixpkgs-25-11.url = "github:NixOS/nixpkgs/nixos-25.11";
     kast.url = "github:kast-lang/kast/bootstrap-ocaml";
     kast-selfhost.url = "git+https://github.com/kast-lang/kast?rev=9cbd998cdb9adf1e3b25cf9599f1e26743f80016&submodules=1";
@@ -13,9 +13,10 @@
   outputs = inputs:
     inputs.flake-utils.lib.eachDefaultSystem (system:
       let
-        overlays = [ ];
-        pkgs = import inputs.nixpkgs { inherit system overlays; };
         pkgs-25-11 = import inputs.nixpkgs-25-11 { inherit system; };
+        # pkgs = import inputs.nixpkgs { inherit system; };
+        pkgs = pkgs-25-11;
+        emscripten = pkgs-25-11.emscripten;
         kast = inputs.kast.packages.${system}.default;
         kast-selfhost = pkgs.writeShellApplication {
           name = "kast";
@@ -24,7 +25,8 @@
             node ${inputs.kast-selfhost.packages.${system}.kast-js}/kast.mjs "$@"
           '';
         };
-        clang = pkgs.clang_22;
+        # clang = pkgs.clang_22;
+        clang = pkgs.clang;
         sdl3-web = with pkgs-25-11;
           stdenv.mkDerivation {
             name = "sdl3-web";
@@ -41,6 +43,29 @@
             dontUseCmakeConfigure = true;
             buildPhase = ''
               emcmake cmake .
+              emmake make
+            '';
+            installPhase = ''
+              cmake --install . --prefix $out
+            '';
+          };
+        sdl3-image-web = with pkgs-25-11;
+          stdenv.mkDerivation {
+            name = "sdl3-image-web";
+            src = fetchFromGitHub {
+              owner = "libsdl-org";
+              repo = "SDL_image";
+              rev = "release-3.4.4";
+              hash = "sha256-ttnoe9bTtA8+eUMOs55v58xb+cWpNEiiTDEeX9GBxaw=";
+            };
+            buildInputs = [
+              emscripten
+              cmake
+            ];
+            dontUseCmakeConfigure = true;
+            buildPhase = ''
+              emcmake cmake . \
+                -DSDL3_DIR=${sdl3-web}/lib/cmake/SDL3
               emmake make
             '';
             installPhase = ''
@@ -107,7 +132,8 @@
           KAST_PATH = "./kast_path";
           BOEHMGC_WEB = "${boehmgc-web}";
           SDL3_WEB = "${sdl3-web}";
-          SDL3_IMAGE_WEB = "${pkgs.lib.getOutput "dev" pkgs.sdl3-image}";
+          SDL3_IMAGE_WEB = "${sdl3-image-web}";
         };
       });
 }
+
