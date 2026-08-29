@@ -48,10 +48,15 @@ const main = () => (
 
     const TT = newtype {
         .unicorn :: ugli.Texture,
+        .angry :: ugli.Texture,
     };
     let textures :: TT = {
         .unicorn = ugli.Texture.load(
             "target/assets/textures/unicorn.png",
+            :Nearest,
+        ),
+        .angry = ugli.Texture.load(
+            "target/assets/textures/angry.png",
             :Nearest,
         ),
     };
@@ -143,7 +148,7 @@ const main = () => (
             );
 
             draw_quad({ 0, 0 }, { 1, 1 }, textures.unicorn);
-            # draw_quad({ 2, 2 }, { 1, 1 }, textures.unicorn);
+            draw_quad({ 2, 2 }, { 1, 1 }, textures.angry);
         );
         f();
 

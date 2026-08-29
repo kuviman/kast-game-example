@@ -15,13 +15,14 @@ build-native:
     just build-c
 
 build-c:
-    gcc \
+    ${CC:-gcc} \
         -lgc -lSDL3 -lSDL3_image -lGL -lGLEW \
         -Wfatal-errors \
         -fsanitize=address,leak,undefined \
         -g -O1 \
         -o target/compiled/main.exe \
         target/compiled/main.c
+    # -fno-omit-frame-pointer \
 
 run:
     just build-native
