@@ -269,11 +269,11 @@ const blend_equation_separate = (
 );
 # blendEq(src * srcFactor, dst * dstFactor)
 
-(#
-
 const create_buffer = () -> Buffer => (
     let ctx = (@current Context);
-    @native "glCreateBuffer()"
+    let mut buffer = @native "0";
+    @native "glGenBuffers(1, \(&mut buffer))";
+    buffer
 );
 
 const bind_buffer = (
@@ -281,16 +281,17 @@ const bind_buffer = (
     buffer :: Buffer,
 ) -> () => (
     let ctx = (@current Context);
-    @native "glBindBuffer(\(target), \(buffer))"
+    @native "glBindBuffer(\(target), \(buffer))";
 );
 
 const buffer_data = (
     target :: GLenum,
-    src_data :: js.Any,
+    size :: GLsizeiptr,
+    data :: const_void_star,
     usage :: GLenum,
 ) -> () => (
     let ctx = (@current Context);
-    @native "glBufferData(\(target), \(src_data), \(usage))"
+    @native "glBufferData(\(target), \(size), \(data), \(usage))";
 );
 
 const vertex_attrib_pointer = (
@@ -303,25 +304,27 @@ const vertex_attrib_pointer = (
 ) -> () => (
     let ctx = (@current Context);
     @native ''glVertexAttribPointer(
-                                            \(index),
-                                            \(size),
-                                            \(@"type"),
-                                            \(normalized),
-                                            \(stride),
-                                            \(offset)
-                                        )
-                                    ''
+            \(index),
+            \(size),
+            \(@"type"),
+            \(normalized),
+            \(stride),
+            (const void*) \(offset)
+        )
+    '';
 );
 
 const enable_vertex_attrib_array = (index :: GLuint) -> () => (
     let ctx = (@current Context);
-    @native "glEnableVertexAttribArray(\(index))"
+    @native "glEnableVertexAttribArray(\(index))";
 );
 
 const disable_vertex_attrib_array = (index :: GLuint) -> () => (
     let ctx = (@current Context);
-    @native "glDisableVertexAttribArray(\(index))"
+    @native "glDisableVertexAttribArray(\(index))";
 );
+
+(#
 
 const create_texture = () -> WebGLTexture => (
     let ctx = (@current Context);
@@ -388,7 +391,8 @@ const pixel_store_bool = (
 );
 
 
-#) const Buffer = @opaque_type;
+#) const Buffer = @opaque_type "GLuint";
+
 const ActiveInfo = newtype {
     .name :: String,
     .size :: GLsizei,

@@ -1,3 +1,5 @@
+const const_void_star = @opaque_type "const void*";
+
 const Long = Int32;
 const ULong = UInt32;
 const LongLong = Int32;

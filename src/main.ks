@@ -11,6 +11,13 @@ const SDL_error = (msg :: String) -> Never => (
 
 const log = print;
 
+const Vertex = newtype {
+    .a_pos :: Vec2,
+    .a_uv :: Vec2,
+};
+
+include_ast ugli.Vertex_derive(Vertex);
+
 const main = () => (
     SDL.Init(@native "SDL_INIT_VIDEO");
     let window = match SDL.CreateWindow(
@@ -38,6 +45,39 @@ const main = () => (
         std.fs.read_file("target/assets/shaders/quad/fragment.glsl"),
     );
     let program = ugli.Program.init(vertex_shader, fragment_shader);
+
+    let quad_buffer = (
+        let mut data :: ArrayList.t[Vertex] = ArrayList.new();
+        ArrayList.push_back(
+            &mut data,
+            {
+                .a_pos = { -1, -1 },
+                .a_uv = { 0, 0 },
+            },
+        );
+        ArrayList.push_back(
+            &mut data,
+            {
+                .a_pos = { +1, -1 },
+                .a_uv = { 1, 0 },
+            },
+        );
+        ArrayList.push_back(
+            &mut data,
+            {
+                .a_pos = { +1, +1 },
+                .a_uv = { 1, 1 },
+            },
+        );
+        ArrayList.push_back(
+            &mut data,
+            {
+                .a_pos = { -1, +1 },
+                .a_uv = { 0, 1 },
+            },
+        );
+        ugli.VertexBuffer.init(&data)
+    );
 
     let mut camera :: Camera = {
         .pos = { 0, 0 },
@@ -83,8 +123,8 @@ const main = () => (
                 draw_state
             );
         # program |> ugli.set_uniform("u_texture", texture, draw_state);
-        # program |> ugli.set_vertex_data_source(ctx.quad.buffer);
-        gl.draw_arrays(gl.TRIANGLE_FAN, 0, 3);
+        program |> ugli.set_vertex_data_source(quad_buffer);
+        gl.draw_arrays(gl.TRIANGLE_FAN, 0, 4);
 
         SDL.GL_SwapWindow(window);
     # @native "SDL_RenderPresent(\(renderer))";

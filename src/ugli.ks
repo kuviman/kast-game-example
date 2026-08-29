@@ -219,67 +219,6 @@ impl Texture as module = (
     );
 );
 
-const VertexAttributeType = newtype {
-    .size :: gl.GLint,
-    .@"type" :: gl.GLenum,
-    .type_size :: Int32,
-};
-
-const VertexAttribute = [Self] newtype {
-    .@"type" :: VertexAttributeType,
-    .construct_data :: &ArrayList.t[Self] -> js.Any,
-};
-
-impl Vec2 as VertexAttribute = {
-    .@"type" = {
-        .size = 2,
-        .@"type" = gl.FLOAT,
-        .type_size = 4,
-    },
-    .construct_data = data => (
-        let list = js.List.init();
-        for &{ x, y } in ArrayList.iter(data) do (
-            list |> js.List.push(x);
-            list |> js.List.push(y);
-        );
-        js.new_float32_array(list)
-    ),
-};
-
-impl Vec3 as VertexAttribute = {
-    .@"type" = {
-        .size = 3,
-        .@"type" = gl.FLOAT,
-        .type_size = 4,
-    },
-    .construct_data = data => (
-        let list = js.List.init();
-        for &{ x, y, z } in ArrayList.iter(data) do (
-            list |> js.List.push(x);
-            list |> js.List.push(y);
-            list |> js.List.push(z);
-        );
-        js.new_float32_array(list)
-    ),
-};
-
-impl Vec4 as VertexAttribute = {
-    .@"type" = {
-        .size = 4,
-        .@"type" = gl.FLOAT,
-        .type_size = 4,
-    },
-    .construct_data = data => (
-        let list = js.List.init();
-        for &{ x, y, z, w } in ArrayList.iter(data) do (
-            list |> js.List.push(x);
-            list |> js.List.push(y);
-            list |> js.List.push(z);
-            list |> js.List.push(w);
-        );
-        js.new_float32_array(list)
-    ),
-};
 
 #) const DrawState = newtype {
     .active_texture_index :: Int32,
@@ -377,7 +316,7 @@ impl Texture as Uniform = {
     );
     (T as Uniform).set(uniform_info^.location, value, state);
 );
-(#
+
 const Vertex = [Self] newtype {
     .init_fields :: (&ArrayList.t[Self], (String, VertexBuffer.Field) -> ()) -> (),
 };
@@ -400,11 +339,11 @@ const Vertex_derive = (ty :: Type) -> std.Ast => @cfg (
                 );
             );
             `(
-                impl ty as Vertex = {
+                @eval (impl ty as Vertex = {
                     .init_fields = ($data, $f) => (
                         $init_fields
                     ),
-                };
+                });
             )
         )
         | _ => panic("Can't derive vertex")
@@ -450,7 +389,12 @@ const VertexBuffer = (
         
         let buffer = gl.create_buffer();
         gl.bind_buffer(gl.ARRAY_BUFFER, buffer);
-        gl.buffer_data(gl.ARRAY_BUFFER, field_data, gl.STATIC_DRAW);
+        gl.buffer_data(
+            gl.ARRAY_BUFFER,
+            field_data.size,
+            field_data.buf,
+            gl.STATIC_DRAW,
+        );
         
         let offset = 0;
         let @"type" = (T as VertexAttribute).@"type";
@@ -486,4 +430,79 @@ const set_vertex_data_source = [V] (
         gl.enable_vertex_attrib_array(attribute_info^.index);
     );
 );
-#)
+
+const VertexAttributeType = newtype {
+    .size :: gl.GLint,
+    .@"type" :: gl.GLenum,
+    .type_size :: Int32,
+};
+
+const RawData = newtype {
+    .size :: Int32,
+    .buf :: gl.const_void_star,
+};
+
+impl RawData as module = (
+    module:
+
+    const new = [T] (data :: &ArrayList.t[T]) -> RawData => {
+        .size = (data |> ArrayList.length) * (@native "sizeof(\(type T))"),
+        .buf = @native "\(data)->buf",
+    };
+);
+
+const VertexAttribute = [Self] newtype {
+    .@"type" :: VertexAttributeType,
+    .construct_data :: &ArrayList.t[Self] -> RawData,
+};
+
+impl Vec2 as VertexAttribute = {
+    .@"type" = {
+        .size = 2,
+        .@"type" = gl.FLOAT,
+        .type_size = 4,
+    },
+    .construct_data = data => (
+        let mut list = ArrayList.new();
+        for &{ x, y } in ArrayList.iter(data) do (
+            &mut list |> ArrayList.push_back(x);
+            &mut list |> ArrayList.push_back(y);
+        );
+        RawData.new(&list)
+    ),
+};
+
+impl Vec3 as VertexAttribute = {
+    .@"type" = {
+        .size = 3,
+        .@"type" = gl.FLOAT,
+        .type_size = 4,
+    },
+    .construct_data = data => (
+        let mut list = ArrayList.new();
+        for &{ x, y, z } in ArrayList.iter(data) do (
+            &mut list |> ArrayList.push_back(x);
+            &mut list |> ArrayList.push_back(y);
+            &mut list |> ArrayList.push_back(z);
+        );
+        RawData.new(&list)
+    ),
+};
+
+impl Vec4 as VertexAttribute = {
+    .@"type" = {
+        .size = 4,
+        .@"type" = gl.FLOAT,
+        .type_size = 4,
+    },
+    .construct_data = data => (
+        let mut list = ArrayList.new();
+        for &{ x, y, z, w } in ArrayList.iter(data) do (
+            &mut list |> ArrayList.push_back(x);
+            &mut list |> ArrayList.push_back(y);
+            &mut list |> ArrayList.push_back(z);
+            &mut list |> ArrayList.push_back(w);
+        );
+        RawData.new(&list)
+    ),
+};
