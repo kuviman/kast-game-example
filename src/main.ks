@@ -2,6 +2,9 @@ const SDL = import "./sdl3/_lib.ks";
 const ugli = import "./ugli.ks";
 const gl = import "./gl/_lib.ks";
 
+use (import "./la.ks").*;
+use (import "./camera.ks").*;
+
 const SDL_error = (msg :: String) -> Never => (
     panic(msg + ": " + (@native "String_from_C_String(SDL_GetError())"))
 );
@@ -36,6 +39,13 @@ const main = () => (
     );
     let program = ugli.Program.init(vertex_shader, fragment_shader);
 
+    let mut camera :: Camera = {
+        .pos = { 0, 0 },
+        .fov = 10,
+    };
+    let mut pos :: Vec2 = { 0, 0 };
+    let mut half_size :: Vec2 = { 1, 1 };
+
     let mut keep_running = true;
     while keep_running do (
         while SDL.PollEvent() is :Some event do (
@@ -46,8 +56,36 @@ const main = () => (
         let { width, height } = SDL.GetWindowSize(window);
         gl.viewport(0, 0, width, height);
         ugli.clear({ 0.8, 0.8, 1, 1 });
-        ugli.Program.@"use"(program);
-        gl.draw_arrays(gl.TRIANGLES, 0, 3);
+
+        with CameraCtx = CameraUniforms.init(
+            camera,
+            .framebuffer_size = {
+                Int32_to_Float32(width),
+                Int32_to_Float32(height),
+            },
+        );
+
+        program |> ugli.Program.@"use";
+        let mut draw_state = ugli.DrawState.init();
+        let draw_state = &mut draw_state;
+        program |> ugli.set_uniform("u_pos", pos, draw_state);
+        program |> ugli.set_uniform("u_half_size", half_size, draw_state);
+        program
+            |> ugli.set_uniform(
+                "u_view_matrix",
+                (@current CameraCtx).view_matrix,
+                draw_state
+            );
+        program
+            |> ugli.set_uniform(
+                "u_projection_matrix",
+                (@current CameraCtx).projection_matrix,
+                draw_state
+            );
+        # program |> ugli.set_uniform("u_texture", texture, draw_state);
+        # program |> ugli.set_vertex_data_source(ctx.quad.buffer);
+        gl.draw_arrays(gl.TRIANGLE_FAN, 0, 3);
+
         SDL.GL_SwapWindow(window);
     # @native "SDL_RenderPresent(\(renderer))";
     );

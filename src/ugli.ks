@@ -281,16 +281,16 @@ impl Vec4 as VertexAttribute = {
     ),
 };
 
-const DrawState = newtype {
+#) const DrawState = newtype {
     .active_texture_index :: Int32,
 };
 
 impl DrawState as module = (
     module:
-    
+
     const init = () -> DrawState => (
         let ctx = (@current gl.Context);
-        
+
         gl.enable(gl.BLEND);
         gl.blend_func_separate(
             gl.SRC_ALPHA,
@@ -298,7 +298,7 @@ impl DrawState as module = (
             gl.ONE_MINUS_DST_ALPHA,
             gl.ONE,
         );
-        
+
         { .active_texture_index = 0 }
     );
 );
@@ -310,67 +310,61 @@ const Uniform = [Self] newtype {
 impl Float32 as Uniform = {
     .set = (location, x, state) => (
         let ctx = (@current gl.Context);
-        let list = js.List.init();
-        @native "\(ctx).uniform1f(\(location), \(x))";
+        @native "glUniform1f(\(location), \(x))";
     ),
 };
 
 impl Vec2 as Uniform = {
     .set = (location, value, state) => (
         let ctx = (@current gl.Context);
-        let list = js.List.init();
         let { x, y } = value;
-        @native "\(ctx).uniform2f(\(location), \(x), \(y))";
+        @native "glUniform2f(\(location), \(x), \(y))";
     ),
 };
 
 impl Vec3 as Uniform = {
     .set = (location, value, state) => (
         let ctx = (@current gl.Context);
-        let list = js.List.init();
         let { x, y, z } = value;
-        @native "\(ctx).uniform3f(\(location), \(x), \(y), \(z))";
+        @native "glUniform3f(\(location), \(x), \(y), \(z))";
     ),
 };
 
 impl Vec4 as Uniform = {
     .set = (location, value, state) => (
         let ctx = (@current gl.Context);
-        let list = js.List.init();
         let { x, y, z, w } = value;
-        @native "\(ctx).uniform4f(\(location), \(x), \(y), \(z), \(w))";
+        @native "glUniform4f(\(location), \(x), \(y), \(z), \(w))";
     ),
 };
 
 impl Mat3 as Uniform = {
     .set = (location, value, state) => (
         let ctx = (@current gl.Context);
-        let list = js.List.init();
+        let mut list = ArrayList.new();
         let { a, b, c } = value;
         let add = (f) => (
-            list |> js.List.push(f(a));
-            list |> js.List.push(f(b));
-            list |> js.List.push(f(c));
+            &mut list |> ArrayList.push_back(f(a));
+            &mut list |> ArrayList.push_back(f(b));
+            &mut list |> ArrayList.push_back(f(c));
         );
         add(row => row.0);
         add(row => row.1);
         add(row => row.2);
-        let data = js.new_float32_array(list);
-        @native "\(ctx).uniformMatrix3fv(\(location), \(false), \(data))";
+        @native "glUniformMatrix3fv(\(location), 1, \(false), \(list).buf)";
     ),
 };
-
+(#
 impl Texture as Uniform = {
     .set = (location, texture, state) => (
         let ctx = (@current gl.Context);
-        @native "\(ctx).activeTexture(\(gl.TEXTURE0 + state^.active_texture_index))";
+        @native "glActiveTexture(\(gl.TEXTURE0 + state^.active_texture_index))";
         gl.bind_texture(gl.TEXTURE_2D, texture.handle);
-        @native "\(ctx).uniform1i(\(location), \(state^.active_texture_index))";
+        @native "glUniform1i(\(location), \(state^.active_texture_index))";
         state^.active_texture_index += 1;
     ),
 };
-
-const set_uniform = [T] (
+#) const set_uniform = [T] (
     program :: Program,
     name :: String,
     value :: T,
@@ -383,7 +377,7 @@ const set_uniform = [T] (
     );
     (T as Uniform).set(uniform_info^.location, value, state);
 );
-
+(#
 const Vertex = [Self] newtype {
     .init_fields :: (&ArrayList.t[Self], (String, VertexBuffer.Field) -> ()) -> (),
 };

@@ -6,7 +6,7 @@ const Byte = Int32;
 const Octet = Int32;
 const Short = Int32;
 const UShort = Int32;
-const UnrestrictedFloat = Float64;
+const UnrestrictedFloat = Float32;
 
 const GLboolean = Bool;
 const GLenum = ULong;

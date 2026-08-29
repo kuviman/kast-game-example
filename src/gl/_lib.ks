@@ -225,6 +225,50 @@ const viewport = (
     @native "glViewport(\(x), \(y), \(width), \(height))";
 );
 
+const enable = (cap :: GLenum) -> () => (
+    let ctx = (@current Context);
+    @native "glEnable(\(cap))";
+);
+
+const blend_color = (
+    red :: GLclampf,
+    green :: GLclampf,
+    blue :: GLclampf,
+    alpha :: GLclampf,
+) -> () => (
+    let ctx = (@current Context);
+    @native "glBlendColor(\(red), \(green), \(blue), \(alpha))";
+);
+
+const blend_func = (src_factor :: GLenum, dst_factor :: GLenum) -> () => (
+    let ctx = (@current Context);
+    @native "glBlendFunc(\(src_factor), \(dst_factor))";
+);
+
+const blend_func_separate = (
+    src_rgb :: GLenum,
+    dst_rgb :: GLenum,
+    src_alpha :: GLenum,
+    dst_alpha :: GLenum,
+) -> () => (
+    let ctx = (@current Context);
+    @native "glBlendFuncSeparate(\(src_rgb), \(dst_rgb), \(src_alpha), \(dst_alpha))";
+);
+
+const blend_equation = (mode :: GLenum) -> () => (
+    let ctx = (@current Context);
+    @native "glBlendEquation(\(mode))"
+);
+
+const blend_equation_separate = (
+    mode_rgb :: GLenum,
+    mode_alpha :: GLenum,
+) -> () => (
+    let ctx = (@current Context);
+    @native "glBlendEquationSeparate(\(mode_rgb), \(mode_alpha))"
+);
+# blendEq(src * srcFactor, dst * dstFactor)
+
 (#
 
 const create_buffer = () -> Buffer => (
@@ -269,49 +313,6 @@ const vertex_attrib_pointer = (
                                     ''
 );
 
-const enable = (cap :: GLenum) -> () => (
-    let ctx = (@current Context);
-    @native "glEnable(\(cap))"
-);
-
-const blend_color = (
-    red :: GLclampf,
-    green :: GLclampf,
-    blue :: GLclampf,
-    alpha :: GLclampf,
-) -> () => (
-    let ctx = (@current Context);
-    @native "glBlendColor(\(red), \(green), \(blue), \(alpha))"
-);
-
-const blend_func = (src_factor :: GLenum, dst_factor :: GLenum) -> () => (
-    let ctx = (@current Context);
-    @native "glBlendFunc(\(src_factor), \(dst_factor))"
-);
-
-const blend_func_separate = (
-    src_rgb :: GLenum,
-    dst_rgb :: GLenum,
-    src_alpha :: GLenum,
-    dst_alpha :: GLenum,
-) -> () => (
-    let ctx = (@current Context);
-    @native "glBlendFuncSeparate(\(src_rgb), \(dst_rgb), \(src_alpha), \(dst_alpha))"
-);
-
-const blend_equation = (mode :: GLenum) -> () => (
-    let ctx = (@current Context);
-    @native "glBlendEquation(\(mode))"
-);
-
-const blend_equation_separate = (
-    mode_rgb :: GLenum,
-    mode_alpha :: GLenum,
-) -> () => (
-    let ctx = (@current Context);
-    @native "glBlendEquationSeparate(\(mode_rgb), \(mode_alpha))"
-);
-# blendEq(src * srcFactor, dst * dstFactor)
 const enable_vertex_attrib_array = (index :: GLuint) -> () => (
     let ctx = (@current Context);
     @native "glEnableVertexAttribArray(\(index))"

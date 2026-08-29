@@ -16,9 +16,8 @@ uniform vec2 u_half_size;
 void main() {
     v_uv = a_uv;
     v_color = a_color;
-    vec2 pos = a_pos * u_half_size + u_pos;
+    vec2 h_pos = vec2(gl_VertexID - 1, gl_VertexID == 1 ? 1.0 : -1.0);
+    vec2 pos = h_pos * u_half_size + u_pos;
     vec3 screen_pos = u_projection_matrix * u_view_matrix * vec3(pos, 1.0);
     gl_Position = vec4(screen_pos.xy, 0.0, screen_pos.z);
-    v_color = vec4(gl_VertexID == 0 ? 1 : 0, gl_VertexID == 1 ? 1 : 0, gl_VertexID == 2 ? 1 : 0, 1.0);
-    gl_Position = vec4(gl_VertexID - 1, gl_VertexID == 1 ? 1.0 : -1.0, 0.0, 1.0);
 }
