@@ -46,6 +46,16 @@ const main = () => (
     );
     let program = ugli.Program.init(vertex_shader, fragment_shader);
 
+    const TT = newtype {
+        .unicorn :: ugli.Texture,
+    };
+    let textures :: TT = {
+        .unicorn = ugli.Texture.load(
+            "target/assets/textures/unicorn.png",
+            :Nearest,
+        ),
+    };
+
     let quad_buffer = (
         let mut data :: ArrayList.t[Vertex] = ArrayList.new();
         ArrayList.push_back(
@@ -79,12 +89,38 @@ const main = () => (
         ugli.VertexBuffer.init(&data)
     );
 
+    let draw_quad = (
+        pos :: Vec2,
+        half_size :: Vec2,
+        texture :: ugli.Texture,
+    ) => (
+        let camera = @current CameraCtx;
+        program |> ugli.Program.@"use";
+        let mut draw_state = ugli.DrawState.init();
+        let draw_state = &mut draw_state;
+        program |> ugli.set_uniform("u_pos", pos, draw_state);
+        program |> ugli.set_uniform("u_half_size", half_size, draw_state);
+        program
+            |> ugli.set_uniform(
+                "u_view_matrix",
+                camera.view_matrix,
+                draw_state
+            );
+        program
+            |> ugli.set_uniform(
+                "u_projection_matrix",
+                camera.projection_matrix,
+                draw_state
+            );
+        program |> ugli.set_uniform("u_texture", texture, draw_state);
+        program |> ugli.set_vertex_data_source(quad_buffer);
+        gl.draw_arrays(gl.TRIANGLE_FAN, 0, 4);
+    );
+
     let mut camera :: Camera = {
         .pos = { 0, 0 },
         .fov = 10,
     };
-    let mut pos :: Vec2 = { 0, 0 };
-    let mut half_size :: Vec2 = { 1, 1 };
 
     let mut keep_running = true;
     while keep_running do (
@@ -97,34 +133,19 @@ const main = () => (
         gl.viewport(0, 0, width, height);
         ugli.clear({ 0.8, 0.8, 1, 1 });
 
-        with CameraCtx = CameraUniforms.init(
-            camera,
-            .framebuffer_size = {
-                Int32_to_Float32(width),
-                Int32_to_Float32(height),
-            },
-        );
+        let f = () => (
+            with CameraCtx = CameraUniforms.init(
+                camera,
+                .framebuffer_size = {
+                    Int32_to_Float32(width),
+                    Int32_to_Float32(height),
+                },
+            );
 
-        program |> ugli.Program.@"use";
-        let mut draw_state = ugli.DrawState.init();
-        let draw_state = &mut draw_state;
-        program |> ugli.set_uniform("u_pos", pos, draw_state);
-        program |> ugli.set_uniform("u_half_size", half_size, draw_state);
-        program
-            |> ugli.set_uniform(
-                "u_view_matrix",
-                (@current CameraCtx).view_matrix,
-                draw_state
-            );
-        program
-            |> ugli.set_uniform(
-                "u_projection_matrix",
-                (@current CameraCtx).projection_matrix,
-                draw_state
-            );
-        # program |> ugli.set_uniform("u_texture", texture, draw_state);
-        program |> ugli.set_vertex_data_source(quad_buffer);
-        gl.draw_arrays(gl.TRIANGLE_FAN, 0, 4);
+            draw_quad({ 0, 0 }, { 1, 1 }, textures.unicorn);
+            # draw_quad({ 2, 2 }, { 1, 1 }, textures.unicorn);
+        );
+        f();
 
         SDL.GL_SwapWindow(window);
     # @native "SDL_RenderPresent(\(renderer))";

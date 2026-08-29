@@ -1,5 +1,6 @@
 use (import "./la.ks").*;
 const gl = import "./gl/_lib.ks";
+const SDL = import "./sdl3/_lib.ks";
 
 use std.collections.OrdMap;
 
@@ -121,7 +122,6 @@ impl Program as module = (
         gl.use_program(program.handle);
     );
 );
-(#
 
 const Texture = newtype {
     .size :: Vec2,
@@ -140,7 +140,7 @@ const Wrap = newtype (
 
 impl Wrap as module = (
     module:
-    
+
     const to_gl = (wrap :: Wrap) -> gl.GLenum => (
         match wrap with (
             | :Repeat => gl.REPEAT
@@ -151,9 +151,9 @@ impl Wrap as module = (
 
 impl Texture as module = (
     module:
-    
+
     const init = (
-        image :: web.HtmlImageElement,
+        image :: SDL.Surface,
         filter :: Filter,
     ) -> Texture => (
         let handle = gl.create_texture();
@@ -163,7 +163,7 @@ impl Texture as module = (
         gl.tex_parameter_i(
             gl.TEXTURE_2D,
             gl.TEXTURE_MIN_FILTER,
-            gl.LINEAR,
+            UInt32_to_Int32(gl.LINEAR),
         );
         match filter with (
             | :Linear => ()
@@ -171,35 +171,59 @@ impl Texture as module = (
                 gl.tex_parameter_i(
                     gl.TEXTURE_2D,
                     gl.TEXTURE_MAG_FILTER,
-                    gl.NEAREST
+                    UInt32_to_Int32(gl.NEAREST),
                 );
             )
         );
+        let width = @native "\(image)->w";
+        let height = @native "\(image)->h";
         gl.tex_image_2d(
             gl.TEXTURE_2D,
             0,
             gl.RGBA,
+            width,
+            height,
+            0,
             gl.RGBA,
             gl.UNSIGNED_BYTE,
-            image |> js.into_any
+            @native "\(image)->pixels",
         );
         # gl.generate_mipmap(gl.TEXTURE_2D);
         gl.tex_parameter_i(
             gl.TEXTURE_2D,
             gl.TEXTURE_WRAP_S,
-            gl.CLAMP_TO_EDGE,
+            UInt32_to_Int32(gl.CLAMP_TO_EDGE),
         );
         gl.tex_parameter_i(
             gl.TEXTURE_2D,
             gl.TEXTURE_WRAP_T,
-            gl.CLAMP_TO_EDGE,
+            UInt32_to_Int32(gl.CLAMP_TO_EDGE),
         );
         {
-            .size = { image.naturalWidth, image.naturalHeight },
+            .size = {
+                Int32_to_Float32(width),
+                Int32_to_Float32(height),
+            },
             .handle,
         }
     );
-    
+
+    const load = (
+        path :: String,
+        filter :: Filter,
+    ) -> Texture => (
+        let surface = SDL.IMG.Load(path);
+        let rgba_surface = SDL.ConvertSurface(
+            surface,
+            @native "SDL_PIXELFORMAT_RGBA32",
+        );
+        SDL.DestroySurface(surface);
+        SDL.FlipSurface(rgba_surface, @native "SDL_FLIP_VERTICAL");
+        let texture = Texture.init(rgba_surface, filter);
+        SDL.DestroySurface(rgba_surface);
+        texture
+    );
+
     const set_wrap_separate = (
         texture :: &mut Texture,
         s :: Wrap,
@@ -209,19 +233,18 @@ impl Texture as module = (
         gl.tex_parameter_i(
             gl.TEXTURE_2D,
             gl.TEXTURE_WRAP_S,
-            s |> Wrap.to_gl,
+            UInt32_to_Int32(s |> Wrap.to_gl),
         );
         gl.tex_parameter_i(
             gl.TEXTURE_2D,
             gl.TEXTURE_WRAP_T,
-            t |> Wrap.to_gl,
+            UInt32_to_Int32(t |> Wrap.to_gl),
         );
     );
 );
 
-
-#) const DrawState = newtype {
-    .active_texture_index :: Int32,
+const DrawState = newtype {
+    .active_texture_index :: UInt32,
 };
 
 impl DrawState as module = (
@@ -293,7 +316,7 @@ impl Mat3 as Uniform = {
         @native "glUniformMatrix3fv(\(location), 1, \(false), \(list).buf)";
     ),
 };
-(#
+
 impl Texture as Uniform = {
     .set = (location, texture, state) => (
         let ctx = (@current gl.Context);
@@ -303,7 +326,8 @@ impl Texture as Uniform = {
         state^.active_texture_index += 1;
     ),
 };
-#) const set_uniform = [T] (
+
+const set_uniform = [T] (
     program :: Program,
     name :: String,
     value :: T,
@@ -339,11 +363,13 @@ const Vertex_derive = (ty :: Type) -> std.Ast => @cfg (
                 );
             );
             `(
-                @eval (impl ty as Vertex = {
-                    .init_fields = ($data, $f) => (
-                        $init_fields
-                    ),
-                });
+                @eval (
+                    impl ty as Vertex = {
+                        .init_fields = ($data, $f) => (
+                            $init_fields
+                        ),
+                    }
+                );
             )
         )
         | _ => panic("Can't derive vertex")
@@ -353,18 +379,18 @@ const Vertex_derive = (ty :: Type) -> std.Ast => @cfg (
 
 const VertexBuffer = (
     module:
-    
+
     const Field = newtype {
         .buffer :: gl.Buffer,
         .stride :: Int32,
         .offset :: Int32,
         .@"type" :: VertexAttributeType,
     };
-    
+
     const t = [V] newtype {
         .fields :: OrdMap.t[String, Field],
     };
-    
+
     const init = [V] (data :: &ArrayList.t[V]) -> t[V] => (
         let mut fields = OrdMap.new();
         (V as Vertex).init_fields(
@@ -375,7 +401,7 @@ const VertexBuffer = (
         );
         { .fields }
     );
-    
+
     const init_field = [V, T] (
         data :: &ArrayList.t[V],
         get :: &V -> T,
@@ -386,7 +412,7 @@ const VertexBuffer = (
             &mut field_data |> ArrayList.push_back(field);
         );
         let field_data = (T as VertexAttribute).construct_data(&field_data);
-        
+
         let buffer = gl.create_buffer();
         gl.bind_buffer(gl.ARRAY_BUFFER, buffer);
         gl.buffer_data(
@@ -395,7 +421,7 @@ const VertexBuffer = (
             field_data.buf,
             gl.STATIC_DRAW,
         );
-        
+
         let offset = 0;
         let @"type" = (T as VertexAttribute).@"type";
         let stride = @"type".size * @"type".type_size;

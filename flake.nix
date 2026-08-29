@@ -39,6 +39,7 @@
             caddy
             inotify-tools
             sdl3
+            sdl3-image
             boehmgc
             libGL
             glew

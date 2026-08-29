@@ -16,7 +16,7 @@ build-native:
 
 build-c:
     gcc \
-        -lgc -lSDL3 -lGL -lGLEW \
+        -lgc -lSDL3 -lSDL3_image -lGL -lGLEW \
         -Wfatal-errors \
         -fsanitize=address,leak,undefined \
         -g -O1 \

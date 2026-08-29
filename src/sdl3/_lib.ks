@@ -97,3 +97,40 @@ const GetWindowSize = (window :: Window) -> { Int32, Int32 } => (
     );
     { width, height }
 );
+
+const Surface = @opaque_type "SDL_Surface*";
+
+const PixelFormat = @opaque_type "SDL_PixelFormat";
+
+const ConvertSurface = (surface :: Surface, format :: PixelFormat) -> Surface => (
+    let result = @native "SDL_ConvertSurface(\(surface), \(format))";
+    if @native "\(result) == NULL" then (
+        throw_error("SDL_ConvertSurface");
+    );
+    result
+);
+
+const DestroySurface = (surface :: Surface) => (
+    @native "SDL_DestroySurface(\(surface))";
+);
+
+const FlipMode = @opaque_type "SDL_FlipMode";
+
+const FlipSurface = (surface :: Surface, mode :: FlipMode) => (
+    if @native "!SDL_FlipSurface(\(surface), \(mode))" then (
+        throw_error("SDL_FlipSurface");
+    );
+);
+
+const IMG = (
+    module:
+
+    const Load = (path :: String) -> Surface => (
+        @native "#include <SDL3_image/SDL_image.h>";
+        let surface = @native "IMG_Load(String_to_C_String(\(path)))";
+        if @native "\(surface) == NULL" then (
+            throw_error("IMG_Load");
+        );
+        surface
+    );
+);

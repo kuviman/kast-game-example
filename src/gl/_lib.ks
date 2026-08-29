@@ -309,7 +309,7 @@ const vertex_attrib_pointer = (
             \(@"type"),
             \(normalized),
             \(stride),
-            (const void*) \(offset)
+            (const void*) (size_t) \(offset)
         )
     '';
 );
@@ -324,62 +324,68 @@ const disable_vertex_attrib_array = (index :: GLuint) -> () => (
     @native "glDisableVertexAttribArray(\(index))";
 );
 
-(#
-
-const create_texture = () -> WebGLTexture => (
+const create_texture = () -> Texture => (
     let ctx = (@current Context);
-    @native "glCreateTexture()"
+    let mut texture :: Texture = @native "0";
+    @native "glGenTextures(1, \(&mut texture))";
+    texture
 );
 
 const bind_texture = (
     target :: GLenum,
-    texture :: WebGLTexture,
-) -> WebGLTexture => (
+    texture :: Texture,
+) => (
     let ctx = (@current Context);
-    @native "glBindTexture(\(target), \(texture))"
+    @native "glBindTexture(\(target), \(texture))";
 );
 
 const tex_image_2d = (
     target :: GLenum,
     level :: GLint,
     internal_format :: GLenum,
+    width :: GLsizei,
+    height :: GLsizei,
+    border :: GLint,
     format :: GLenum,
     @"type" :: GLenum,
-    source :: js.Any,
-) -> WebGLTexture => (
+    data :: const_void_star,
+) => (
     let ctx = (@current Context);
     @native ''glTexImage2D(
                 \(target),
                 \(level),
                 \(internal_format),
+                \(width),
+                \(height),
+                \(border),
                 \(format),
                 \(@"type"),
-                \(source)
+                \(data)
             )
-        ''
+        '';
 );
 
 const tex_parameter_i = (
     target :: GLenum,
     pname :: GLenum,
     param :: GLint,
-) -> WebGLTexture => (
+) => (
     let ctx = (@current Context);
-    @native "glTexParameteri(\(target), \(pname), \(param))"
+    @native "glTexParameteri(\(target), \(pname), \(param))";
 );
 
 const tex_parameter_f = (
     target :: GLenum,
     pname :: GLenum,
     param :: GLfloat,
-) -> WebGLTexture => (
+) => (
     let ctx = (@current Context);
-    @native "glTexParameterf(\(target), \(pname), \(param))"
+    @native "glTexParameterf(\(target), \(pname), \(param))";
 );
 
 const generate_mipmap = (target :: GLenum) -> () => (
     let ctx = (@current Context);
-    @native "glGenerateMipmap(\(target))"
+    @native "glGenerateMipmap(\(target))";
 );
 
 const pixel_store_bool = (
@@ -387,11 +393,10 @@ const pixel_store_bool = (
     value :: GLboolean,
 ) -> () => (
     let ctx = (@current Context);
-    @native "glPixelStorei(\(pname), \(value))"
+    @native "glPixelStorei(\(pname), \(value))";
 );
 
-
-#) const Buffer = @opaque_type "GLuint";
+const Buffer = @opaque_type "GLuint";
 
 const ActiveInfo = newtype {
     .name :: String,
