@@ -23,8 +23,25 @@
           '';
         };
         clang = pkgs.clang_22;
+        boehmgc-web = pkgs.stdenv.mkDerivation {
+          name = "raylib-web";
+          src = pkgs.boehmgc.src;
+          buildInputs = [ pkgs.emscripten pkgs.cmake ];
+          buildPhase = ''
+            emcmake cmake .
+            cmake --build .
+          '';
+          installPhase = ''
+            mkdir $out
+            ls -la .
+            cp libraylib.web.a $out/libraylib.web.a
+          '';
+        };
       in
       with pkgs; {
+        packages = {
+          inherit boehmgc-web;
+        };
         devShells.default = mkShell {
           packages = [
             (pkgs.writeShellScriptBin "kastc" ''
@@ -45,10 +62,14 @@
             glew
             clang
             valgrind
+            emscripten
           ];
           # Since I dont have cmake or whatever
           CLANGD_FLAGS = "--query-driver=${clang}/bin/clang*";
           KAST_PATH = "./kast_path";
+          BOEHMGC = "${pkgs.lib.getOutput "dev" pkgs.boehmgc}";
+          SDL3 = "${pkgs.lib.getOutput "dev" pkgs.sdl3}";
+          SDL3_IMAGE = "${pkgs.lib.getOutput "dev" pkgs.sdl3-image}";
         };
       });
 }
