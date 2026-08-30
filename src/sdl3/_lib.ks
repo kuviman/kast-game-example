@@ -50,31 +50,35 @@ const CreateWindow = (
     window
 );
 
-const GL_Context = @opaque_type "SDL_GLContext";
+const GL = (
+    module:
 
-const GL_CreateContext = (window :: Window) -> GL_Context => (
-    let ctx = @native "SDL_GL_CreateContext(\(window))";
-    if @native "\(ctx) == NULL" then (
-        throw_error("GL_CreateContext");
+    const Context = @opaque_type "SDL_GLContext";
+
+    const CreateContext = (window :: Window) -> GL.Context => (
+        let ctx = @native "SDL_GL_CreateContext(\(window))";
+        if @native "\(ctx) == NULL" then (
+            throw_error("GL_CreateContext");
+        );
+        ctx
     );
-    ctx
-);
 
-const GL_MakeCurrent = (window :: Window, gl :: GL_Context) => (
-    if @native "!SDL_GL_MakeCurrent(\(window), \(gl))" then (
-        throw_error("SDL_GL_MakeCurrent");
+    const MakeCurrent = (window :: Window, gl :: GL.Context) => (
+        if @native "!SDL_GL_MakeCurrent(\(window), \(gl))" then (
+            throw_error("SDL_GL_MakeCurrent");
+        );
     );
-);
 
-const GL_SetSwapInterval = (interval :: Int) => (
-    if @native "!SDL_GL_SetSwapInterval(\(interval))" then (
-        throw_error("SDL_GL_SetSwapInterval");
+    const SetSwapInterval = (interval :: Int) => (
+        if @native "!SDL_GL_SetSwapInterval(\(interval))" then (
+            throw_error("SDL_GL_SetSwapInterval");
+        );
     );
-);
 
-const GL_SwapWindow = (window :: Window) => (
-    if @native "!SDL_GL_SwapWindow(\(window))" then (
-        throw_error("SDL_GL_SwapWindow");
+    const SwapWindow = (window :: Window) => (
+        if @native "!SDL_GL_SwapWindow(\(window))" then (
+            throw_error("SDL_GL_SwapWindow");
+        );
     );
 );
 
@@ -137,3 +141,61 @@ const IMG = (
 const GetTicks = () -> UInt64 => (
     @native "SDL_GetTicks()"
 );
+
+const RawAppResult = @opaque_type "SDL_AppResult";
+
+const AppResult = newtype (
+    | :Success
+    | :Failure
+    | :Continue
+);
+
+const App = [Self] newtype {
+    .init :: () -> Self,
+    .iterate :: &mut Self -> AppResult,
+    .event :: (&mut Self, &Event) -> AppResult,
+    .quit :: (Self, AppResult) -> (),
+};
+# const mut STORE_CONTEXT :: Option.t[@context] = :None;
+
+const EnterAppMainCallbacks = [A] () => (
+    let mut app = (A as App).init();
+    let result = unwindable main (
+        let handle_app_result = result => match result with (
+            | :Continue => ()
+            | _ => unwind main result
+        );
+        @loop (
+            (A as App).iterate(&mut app) |> handle_app_result;
+            while PollEvent() is :Some event do (
+                (A as App).event(&mut app, &event) |> handle_app_result;
+            );
+        )
+    );
+    (A as App).quit(app, result);
+    match result with (
+        | :Success => ()
+        | :Continue => panic("unreachable")
+        | :Failure => std.sys.exit(-1)
+    )
+(#
+    STORE_CONTEXT = :Some @context;
+    const AppStateRef = @opaque_type "void**";
+    const init_callback = [A] fn @call "C" (
+        app_state :: AppStateRef,
+        _argc :: @opaque_type "int",
+        _argv :: @opaque_type "char**",
+    ) -> RawAppResult => (
+        with @context = STORE_CONTEXT |> Option.unwrap;
+        let initialized_app = (A as App).init();
+        @native "*\(app_state) = \(initialized_app)";
+        @native "SDL_APP_CONTINUE"
+    );
+    @native ''
+        SDL_EnterAppMainCallbacks(
+            CLI_ARGS.argc,
+            CLI_ARGS.original_argv,
+            \(init_callback[A])
+        )
+    '';
+#) );

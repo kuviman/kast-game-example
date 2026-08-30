@@ -392,6 +392,7 @@ const VertexBuffer = (
 
     const t = [V] newtype {
         .fields :: OrdMap.t[String, Field],
+        .length :: Int32,
     };
 
     const init = [V] (data :: &ArrayList.t[V]) -> t[V] => (
@@ -402,7 +403,8 @@ const VertexBuffer = (
                 OrdMap.add(&mut fields, name, field);
             )
         );
-        { .fields }
+        let length = data |> ArrayList.length;
+        { .fields, .length }
     );
 
     const init_field = [V, T] (
