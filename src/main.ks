@@ -15,7 +15,6 @@ const Vertex = newtype {
 include_ast ugli.Vertex_derive(Vertex);
 
 const main = () => (
-    @native "{KAST_GC_ENABLED = false;}";
     log("Initializing");
     SDL.Init(@native "SDL_INIT_VIDEO");
     let window = SDL.CreateWindow(
@@ -133,7 +132,6 @@ const main = () => (
     let mut ticks = SDL.GetTicks();
     let mut x :: Float32 = 0;
     while keep_running do (
-        print("TICKS = " + to_string(ticks));
         let new_ticks = SDL.GetTicks();
         let delta_time :: Float32 = @native "(float)\(new_ticks - ticks) / 1000.0";
         ticks = new_ticks;

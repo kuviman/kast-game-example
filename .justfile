@@ -17,10 +17,10 @@ build-native:
         target/compiled/main.c
     # -fno-omit-frame-pointer \
 
-build-emscripten:
+build-emscripten source="target/compiled/main.c":
     rm -rf target/web
     mkdir -p target/web
-    emcc target/compiled/main.c \
+    emcc {{source}} \
         -o target/web/index.html \
         -I ${BOEHMGC_WEB}/include \
         -L ${BOEHMGC_WEB}/lib \
@@ -32,6 +32,7 @@ build-emscripten:
         -L ${SDL3_IMAGE_WEB}/lib \
         -l SDL3_image \
         -O0 \
+        -g -gsource-map \
         --use-preload-plugins \
         --preload-file assets \
         -s TOTAL_STACK=64MB \
