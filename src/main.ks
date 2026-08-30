@@ -18,16 +18,11 @@ const main = () => (
     @native "{KAST_GC_ENABLED = false;}";
     log("Initializing");
     SDL.Init(@native "SDL_INIT_VIDEO");
-    let window = match SDL.CreateWindow(
+    let window = SDL.CreateWindow(
         "Kast Game Example",
         640,
         480,
         @native "SDL_WINDOW_RESIZABLE | SDL_WINDOW_OPENGL",
-    ) with (
-        | :Ok result => result
-        | :Error () => (
-            SDL_error("Failed to create window") |> from_never
-        )
     );
     log("Created window");
 

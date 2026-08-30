@@ -33,7 +33,7 @@ const CreateWindow = (
     width :: Int,
     height :: Int,
     window_flags :: WindowFlags,
-) -> Result.t[Window, type ()] => (
+) -> Window => (
     let window = @native ''
         SDL_CreateWindow(
             String_to_C_String(\(
@@ -45,10 +45,9 @@ const CreateWindow = (
         )
     '';
     if @native "\(window) == NULL" then (
-        :Error ()
-    ) else (
-        :Ok window
-    )
+        throw_error("SDL_CreateWindow");
+    );
+    window
 );
 
 const GL_Context = @opaque_type "SDL_GLContext";
