@@ -5,10 +5,6 @@ const gl = import "./gl/_lib.ks";
 use (import "./la.ks").*;
 use (import "./camera.ks").*;
 
-const SDL_error = (msg :: String) -> Never => (
-    panic(msg + ": " + (@native "String_from_C_String(SDL_GetError())"))
-);
-
 const log = print;
 
 const Vertex = newtype {
