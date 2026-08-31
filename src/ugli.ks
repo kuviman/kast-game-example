@@ -1,3 +1,4 @@
+use (import "./common.ks").*;
 use (import "./la.ks").*;
 const gl = import "./gl/_lib.ks";
 const SDL = import "./sdl3/_lib.ks";
@@ -29,6 +30,12 @@ impl Float32 as SizedType = {
 };
 
 const compile_shader = (shader_type, source) => (
+    let source_prefix = if is_emscripten() then ''
+        precision highp float;
+    '' else ''
+        #version 130
+    '';
+    let source = source_prefix + "\n" + source;
     let shader = gl.create_shader(shader_type);
     gl.shader_source(shader, source);
     gl.compile_shader(shader);
@@ -64,6 +71,15 @@ impl Program as module = (
     module:
 
     const init = (
+        .vertex_glsl :: String,
+        .fragment_glsl :: String,
+    ) -> Program => (
+        let vertex_shader = compile_shader(gl.VERTEX_SHADER, vertex_glsl);
+        let fragment_shader = compile_shader(gl.FRAGMENT_SHADER, fragment_glsl);
+        init_impl(vertex_shader, fragment_shader)
+    );
+
+    const init_impl = (
         vertex_shader :: gl.Shader,
         fragment_shader :: gl.Shader,
     ) -> Program => (
@@ -213,15 +229,14 @@ impl Texture as module = (
         filter :: Filter,
     ) -> Texture => (
         let surface = SDL.IMG.Load(path);
-        (#
         let rgba_surface = SDL.ConvertSurface(
             surface,
             @native "SDL_PIXELFORMAT_RGBA32",
         );
         SDL.DestroySurface(surface);
-#)
-        let rgba_surface = surface;
-        # SDL.FlipSurface(rgba_surface, @native "SDL_FLIP_VERTICAL");
+        if not is_emscripten() then (
+            SDL.FlipSurface(rgba_surface, @native "SDL_FLIP_VERTICAL");
+        );
         let texture = Texture.init(rgba_surface, filter);
         SDL.DestroySurface(rgba_surface);
         texture

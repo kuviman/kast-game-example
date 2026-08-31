@@ -1,6 +1,3 @@
-// #version 130
-precision highp float;
-
 attribute vec2 a_pos;
 attribute vec2 a_uv;
 

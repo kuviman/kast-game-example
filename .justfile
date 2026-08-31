@@ -9,7 +9,7 @@ build-c:
 
 build-native:
     ${CC:-gcc} \
-        -lgc -lSDL3 -lSDL3_image -lGL -lGLEW \
+        -lm -lgc -lSDL3 -lSDL3_image -lGL -lGLEW \
         -Wfatal-errors \
         -fsanitize=address,leak,undefined \
         -g -O1 \

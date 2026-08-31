@@ -2,6 +2,7 @@ const SDL = import "./sdl3/_lib.ks";
 const ugli = import "./ugli.ks";
 const gl = import "./gl/_lib.ks";
 
+use (import "./common.ks").*;
 use (import "./la.ks").*;
 use (import "./camera.ks").*;
 
@@ -82,15 +83,10 @@ const draw_quad = (
             ugli.init();
             log("Initialized ugli");
 
-            let vertex_shader = ugli.compile_shader(
-                gl.VERTEX_SHADER,
-                std.fs.read_file("assets/shaders/quad/vertex.glsl"),
+            let program = ugli.Program.init(
+                .vertex_glsl = std.fs.read_file("assets/shaders/quad/vertex.glsl"),
+                .fragment_glsl = std.fs.read_file("assets/shaders/quad/fragment.glsl"),
             );
-            let fragment_shader = ugli.compile_shader(
-                gl.FRAGMENT_SHADER,
-                std.fs.read_file("assets/shaders/quad/fragment.glsl"),
-            );
-            let program = ugli.Program.init(vertex_shader, fragment_shader);
             log("Compiled shader program");
 
             let textures = {
