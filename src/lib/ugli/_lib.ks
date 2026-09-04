@@ -1,7 +1,7 @@
-use (import "./common.ks").*;
-use (import "./la.ks").*;
-const gl = import "./gl/_lib.ks";
-const SDL = import "./sdl3/_lib.ks";
+use (import "../common.ks").*;
+use (import "../la.ks").*;
+const gl = import "../gl/_lib.ks";
+const SDL = import "../sdl3/_lib.ks";
 
 use std.collections.OrdMap;
 

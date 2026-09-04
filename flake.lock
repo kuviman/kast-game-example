@@ -168,11 +168,11 @@
         "opam-repository": "opam-repository"
       },
       "locked": {
-        "lastModified": 1788167308,
-        "narHash": "sha256-WcpMU410Tp2yhImlqjU4T7dCCw3zQ6D+ruOHcLRY40o=",
+        "lastModified": 1788558497,
+        "narHash": "sha256-R9sBRd6E+BruWOwMdi5Xte0K3jBlAEvc7EtUUreTrAk=",
         "owner": "kast-lang",
         "repo": "kast",
-        "rev": "0f9943f24f243b824d70ad1226d4f578e058ec5d",
+        "rev": "8799192139efd8ae6af22a80ba96df242bf16590",
         "type": "github"
       },
       "original": {
@@ -387,6 +387,22 @@
         "type": "github"
       }
     },
+    "nixpkgs_5": {
+      "locked": {
+        "lastModified": 1788404924,
+        "narHash": "sha256-lhEhY8X5EgkQ/eg6IFz4cc8jRuSYSvnxx1al7d1dvZ0=",
+        "owner": "NixOS",
+        "repo": "nixpkgs",
+        "rev": "0968519e14f7aa7d3e9b389682bd74d2b51c8ce8",
+        "type": "github"
+      },
+      "original": {
+        "owner": "NixOS",
+        "ref": "nixos-unstable",
+        "repo": "nixpkgs",
+        "type": "github"
+      }
+    },
     "opam-nix": {
       "inputs": {
         "flake-compat": "flake-compat",
@@ -565,6 +581,7 @@
         "flake-utils": "flake-utils",
         "kast": "kast",
         "kast-selfhost": "kast-selfhost",
+        "nixpkgs": "nixpkgs_5",
         "nixpkgs-25-11": "nixpkgs-25-11"
       }
     },

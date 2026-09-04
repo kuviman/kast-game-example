@@ -31,6 +31,9 @@ build-emscripten source="target/compiled/main.c":
         -I ${SDL3_IMAGE_WEB}/include \
         -L ${SDL3_IMAGE_WEB}/lib \
         -l SDL3_image \
+        -I ${SDL3_MIXER_WEB}/include \
+        -L ${SDL3_MIXER_WEB}/lib \
+        -l SDL3_mixer \
         -O0 \
         -g -gsource-map \
         --use-preload-plugins \

@@ -1,4 +1,4 @@
-use (import "./la.ks").*;
+use (import "../la.ks").*;
 
 module:
 

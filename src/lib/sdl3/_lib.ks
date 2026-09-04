@@ -10,6 +10,8 @@ const throw_error = (fn_name :: String) => (
     panic(fn_name + " failed: " + GetError());
 );
 
+const PropertiesID = @opaque_type "SDL_PropertiesID";
+
 const InitFlags = @opaque_type "SDL_InitFlags";
 
 const Init = (flags :: InitFlags) => (
@@ -135,6 +137,106 @@ const IMG = (
             throw_error("IMG_Load");
         );
         surface
+    );
+);
+
+const MIX = (
+    module:
+
+    const Init = () => (
+        @native "#include <SDL3_mixer/SDL_mixer.h>";
+        if @native "!MIX_Init()" then (
+            throw_error("MIX_Init");
+        );
+    );
+
+    const AudioDeviceID = @opaque_type "SDL_AudioDeviceID";
+    const AudioSpec = @opaque_type "SDL_AudioSpec*";
+
+    const Mixer = @opaque_type "MIX_Mixer*";
+
+    const CreateMixerDevice = (
+        devid :: AudioDeviceID,
+        spec :: AudioSpec,
+    ) -> Mixer => (
+        let mixer = @native "MIX_CreateMixerDevice(\(devid), \(spec))";
+        if @native "\(mixer) == NULL" then (
+            throw_error("MIX_CreateMixerDevice");
+        );
+        mixer
+    );
+
+    const Audio = @opaque_type "MIX_Audio*";
+
+    const LoadAudio = (
+        mixer :: Mixer,
+        path :: String,
+        predecode :: Bool,
+    ) -> Audio => (
+        let path_c :: @opaque_type "const char*" = @native "String_to_C_String(\(path))";
+        let audio = @native "MIX_LoadAudio(\(mixer), \(path_c), \(predecode))";
+        if @native "\(audio) == NULL" then (
+            throw_error("MIX_LoadAudio");
+        );
+        audio
+    );
+
+    const DestroyAudio = (audio :: Audio) => (
+        @native "MIX_DestroyAudio(\(audio))";
+    );
+
+    const Track = @opaque_type "MIX_Track*";
+
+    const CreateTrack = (mixer :: Mixer) -> Track => (
+        let track = @native "MIX_CreateTrack(\(mixer))";
+        if @native "\(track) == NULL" then (
+            throw_error("MIX_CreateTrack");
+        );
+        track
+    );
+
+    const SetTrackAudio = (track :: Track, audio :: Audio) => (
+        if @native "!MIX_SetTrackAudio(\(track), \(audio))" then (
+            throw_error("MIX_SetTrackAudio");
+        );
+    );
+
+    const PlayTrack = (track :: Track, options :: PropertiesID) => (
+        if @native "!MIX_PlayTrack(\(track), \(options))" then (
+            throw_error("MIX_PlayTrack");
+        );
+    );
+
+    const SetMixerGain = (mixer :: Mixer, gain :: Float32) => (
+        if @native "!MIX_SetMixerGain(\(mixer), \(gain))" then (
+            throw_error("MIX_SetMixerGain");
+        );
+    );
+
+    const SetTrackGain = (track :: Track, gain :: Float32) => (
+        if @native "!MIX_SetTrackGain(\(track), \(gain))" then (
+            throw_error("MIX_SetTrackGain");
+        );
+    );
+
+    const SetTrackLoops = (track :: Track, loops :: Int32) => (
+        if @native "!MIX_SetTrackLoops(\(track), \(loops))" then (
+            throw_error("MIX_SetTrackLoops");
+        );
+    );
+
+    const DestroyTrack = (track :: Track) => (
+        @native "MIX_DestroyTrack(\(track))";
+    );
+
+    const Quit = () => (
+        @native "MIX_Quit()";
+    );
+);
+
+const SetWindowFullscreen = (window :: Window, fullscreen :: Bool) => (
+    if @native "!SDL_SetWindowFullscreen(\(window), \(fullscreen))" then (
+        throw_error("SDL_SetWindowFullscreen");
     );
 );
 
