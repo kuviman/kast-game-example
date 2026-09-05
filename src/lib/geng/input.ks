@@ -28,7 +28,7 @@ const Key = newtype (
 
 impl Key as module = (
     module:
-    
+
     const is_pressed = (key :: Key) -> Bool => (
         # TODO
         false
@@ -43,7 +43,7 @@ const MouseButton = newtype (
 
 impl MouseButton as module = (
     module:
-    
+
     const from_raw = (raw :: Int32) -> Option.t[MouseButton] => (
         if raw == 0 then (
             :Some (:Left)
@@ -55,7 +55,7 @@ impl MouseButton as module = (
             :None
         )
     );
-    
+
     const into_raw = (button :: MouseButton) -> Int32 => (
         match button with (
             | :Left => 0
@@ -63,7 +63,7 @@ impl MouseButton as module = (
             | :Right => 2
         )
     );
-    
+
     const is_pressed = (button :: MouseButton) -> Bool => (
         # TODO
         false
@@ -77,7 +77,7 @@ const Event = newtype (
 
 const convert = (event :: SDL.Event) -> Option.t[Event] => with_return (
     if @native "\(event).type == SDL_EVENT_MOUSE_BUTTON_DOWN" then (
-        let pos = { @native "\(event).button.x", @native "\(event).button.y" };
+        let pos :: Vec2 = { @native "\(event).button.x", @native "\(event).button.y" };
         let window_size = geng.get_window_size();
         let pos = { pos.0, window_size.1 - 1 - pos.1 };
         return :Some :PointerPress { .pos };
